@@ -1,0 +1,8 @@
+HentaiChan Parser.pyproj
+HentaiChan Parser.sln
+\#Definitions.json
+__pycache__/
+chapters/
+Logs/
+.wdm/
+.vs/

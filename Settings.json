@@ -1,0 +1,10 @@
+{
+  "directory": "",
+  "scan-target": "",
+  "login": "",
+  "password": "",
+  "delay": 5,
+  "getting-slide-sizes": true,
+  "logs-cleanup": true,
+  "last-scan-new-range": ""
+}
