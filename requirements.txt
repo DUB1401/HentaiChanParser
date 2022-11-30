@@ -1,0 +1,4 @@
+webdriver-manager
+BeautifulSoup4
+Selenium
+lxml
