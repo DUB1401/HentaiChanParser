@@ -1,8 +1,8 @@
 HentaiChan Parser.pyproj
 HentaiChan Parser.sln
-\#Definitions.json
 __pycache__/
-chapters/
+Titles/
 Logs/
 .wdm/
 .vs/
+

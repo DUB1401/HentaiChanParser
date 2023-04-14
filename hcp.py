@@ -1,11 +1,13 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/python
 
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver import Chrome
-from PIL import ImageFile
-from time import sleep
+from Source.Functions import SecondsToTimeString
+from Source.TitleParser import TitleParser
+from Source.DUBLIB import Shutdown
+from selenium import webdriver
+from Source.DUBLIB import Cls
 
 import datetime
 import logging
@@ -14,16 +16,27 @@ import time
 import sys
 import os
 
-from BaseFunctions import GetLastChapterDefinitionID
-from BaseFunctions import SecondsToTimeString
-from BaseFunctions import GetPagesCount
-from BaseFunctions import Shutdown
-from BaseFunctions import LogIn
-from BaseFunctions import Cls
+#==========================================================================================#
+# >>>>> ПРОВЕРКА ВЕРСИИ PYTHON <<<<< #
+#==========================================================================================#
 
-from Components import ChromeHeadlessTest
-from Components import GetChapterSlides
-from Components import ScanTitles
+# Минимальная требуемая версия Python.
+PythonMinimalVersion = (3, 9)
+# Проверка соответствия.
+if sys.version_info < PythonMinimalVersion:
+	sys.exit("Python %s.%s or later is required.\n" % PythonMinimalVersion)
+
+#==========================================================================================#
+# >>>>> ПРОВЕРКА НАЛИЧИЯ ДИРЕКТОРИЙ <<<<< #
+#==========================================================================================#
+
+# Список необходимых директорий.
+ImportantDirectories = ["Covers", "Logs", "Titles"]
+
+# Создание отсутствующих директорий.
+for DirectoryName in ImportantDirectories:
+	if os.path.isdir(DirectoryName) == False:
+		os.makedirs(DirectoryName)
 
 #==========================================================================================#
 # >>>>> ИНИЦИАЛИЗАЦИЯ ЛОГОВ <<<<< #
@@ -34,100 +47,93 @@ CurrentDate = datetime.datetime.now()
 # Время запуска скрипта.
 StartTime = time.time()
 # Формирование пути к файлу лога.
-LogFilename = "Logs\\" + str(CurrentDate)[:-7] + ".log"
+LogFilename = "Logs/" + str(CurrentDate)[:-7] + ".log"
 LogFilename = LogFilename.replace(':', '-')
 # Установка конфигнурации.
 logging.basicConfig(filename = LogFilename, encoding = "utf-8", level = logging.INFO)
 
 #==========================================================================================#
-# >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
-#==========================================================================================#
-
-# Расположении папки установки веб-драйвера в директории скрипта.
-os.environ["WDM_LOCAL"] = "1"
-# Разрешить чтение усечённых файлов.
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-# Установка параметров работы браузера: отключение вывода логов в консоль, отключение аппаратного ускорения.
-BrowserOptions = Options()
-BrowserOptions.add_argument("--log-level=3")
-BrowserOptions.add_argument("--disable-gpu")
-BrowserOptions.add_argument("--disable-blink-features=AutomationControlled")
-# Загрузка веб-драйвера и установка его в качестве используемого модуля.
-Browser = Chrome(service = Service(ChromeDriverManager().install()), options = BrowserOptions)
-# Очистка куков перед запуском (предположительный фикс бага авторизации).
-Browser.delete_all_cookies()
-# Очистка консоли от данных о сессии.
-Cls()
-# Установка размера окна браузера на FullHD для корректной работы сайтов.
-Browser.set_window_size(1920, 1080)
-
-#==========================================================================================#
-# >>>>> ПРОВЕРКА НАЛИЧИЯ ДИРЕКТОРИЙ <<<<< #
-#==========================================================================================#
-
-# Список необходимых директорий.
-ImportantDirectories = ["hentai", "chapters"]
-
-# Создание отсутствующих директорий.
-for DirectoryName in ImportantDirectories:
-	if os.path.isdir(DirectoryName) == False:
-		os.makedirs(DirectoryName)
-
-#==========================================================================================#
 # >>>>> ЧТЕНИЕ НАСТРОЕК <<<<< #
 #==========================================================================================#
 
-# Вывод в лог заголовка: подготовка скрипта к работе.
-logging.info("====== Prepare to starting ======")
+# Запись в лог сообщения: заголовок подготовки скрипта к работе.
+logging.info("====== Preparing to starting ======")
+# Запись в лог используемой версии Python.
+logging.info("Starting with Python " + str(sys.version_info.major) + "." + str(sys.version_info.minor) + "." + str(sys.version_info.micro) + " on " + str(sys.platform) + ".")
 # Запись времени начала работы скрипта.
 logging.info("Script started at " + str(CurrentDate)[:-7] + ".")
 # Запись команды, использовавшейся для запуска скрипта.
 logging.info("Launch command: \"" + " ".join(sys.argv[1:len(sys.argv)]) + "\".")
-# Инициализация хранилища настроек со стадартными значениями.
+# Расположении папки установки веб-драйвера в директории скрипта.
+os.environ["WDM_LOCAL"] = "1"
+# Отключение логов WebDriver.
+os.environ["WDM_LOG"] = str(logging.NOTSET)
+# Глобальные настройки.
 Settings = {
-    "directory" : "",
-    "scan-target" : "",
-	"login": "",
-    "password": "",
-    "delay": 5,
-    "getting-slide-sizes": False,
-    "logs-cleanup": True,
-	"last-scan-new-range": ""
+	"format": "dmp-v1",
+	"min-delay": 1,
+	"max-delay": 5,
+	"use-id-instead-slug": False,
+	"covers-directory": "",
+	"titles-directory": "",
+	"retry-tries": 3,
+	"retry-delay": 15,
+	"debug": False
 }
 
-# Открытие файла настроек.
-try:
+# Проверка доступности файла.
+if os.path.exists("Settings.json"):
+
+	# Открытие файла настроек.
 	with open("Settings.json") as FileRead:
+		# Чтение настроек.
 		Settings = json.load(FileRead)
-		# Проверка успешной загрузки файла.
-		if Settings == None:
-			# Запись в лог ошибки о невозможности прочитать битый файл.
-			logging.error("Unable to read \"Settings.json\". File is broken.")
-		else:
-			# Запись в лог сообщения об успешном чтении файла настроек.
-			logging.info("The settings file was found successfully.")
+		# Запись в лог сообщения об успешном чтении файла настроек.
+		logging.info("Settings file was found.")
 
-			# Если директория загрузки не установлена, задать значение по умолчанию.
-			if Settings["directory"] == "":
-				# Установка директории по умолчанию на основе домена.
-				Settings["directory"] = "hentai"
-				# Запись в лог сообщения об установке стандартной директории загрузки.
-				logging.info("Save directory set as default.")
-			else:
-				# Запись в лог сообщения об установке директории загрузки.
-				logging.info("Save directory set as " + Settings["directory"] + ".")
+		# Интерпретация выходной директории обложек и коррекция пути.
+		if Settings["covers-directory"] == "":
+			Settings["covers-directory"] = "Covers/"
+		elif Settings["covers-directory"][-1] != '/':
+			Settings["covers-directory"] += "/"
 
-			# Если директория не существует, тогда создать её.
-			if os.path.exists(Settings["directory"]) == False:
-					os.makedirs(Settings["directory"])
+		# Интерпретация выходной директории обложек и коррекция пути.
+		if Settings["titles-directory"] == "":
+			Settings["titles-directory"] = "Titles/"
+		elif Settings["titles-directory"][-1] != '/':
+			Settings["titles-directory"] += "/"
 
-			# Вывести сообщение об отключеннии получения размеров слайдов.
-			if Settings["getting-slide-sizes"] == False:
-				logging.info("Images sizing is disabled.")
-# Обработка исключений: любое исключение.
-except EnvironmentError:
-	# Запись в лог ошибки о невозможности открытия файла настроек.
-	logging.error("Unable to open \"Settings.json\". All options set as default.")
+		# Приведение формата описательного файла к нижнему регистру.
+		Settings["format"] = Settings["format"].lower()
+
+		# Запись в шапку лога формата выходного файла.
+		logging.info("Output file format: \"" + Settings["format"] + "\".")
+
+#==========================================================================================#
+# >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
+#==========================================================================================#
+
+# Экземпляр веб-драйвера Google Chrome.
+Browser = None
+# Опции веб-драйвера.
+ChromeOptions = Options()
+# Установка опций.
+ChromeOptions.add_argument("--no-sandbox")
+ChromeOptions.add_argument("--disable-dev-shm-usage")
+ChromeOptions.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+# При отключённом режиме отладки скрыть окно браузера.
+if Settings["debug"] is False:
+	ChromeOptions.add_argument("--headless=new")
+
+try:
+	# Инициализация браузера.
+	Browser = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = ChromeOptions)
+	# Установка размера окна браузера на FullHD для корректной работы сайтов.
+	Browser.set_window_size(1920, 1080)
+
+except FileNotFoundError:
+	logging.critical("Unable to locate webdriver! Try to remove \".wdm\" folder in script directory.")
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА СПЕЦИАЛЬНЫХ ФЛАГОВ <<<<< #
@@ -171,99 +177,15 @@ if "-s" in sys.argv:
 
 # Двухкомпонентные команды: parce, update, scan.
 if len(sys.argv) >= 3:
-	# Вход на сайт.
-	LogIn(Browser, Settings)
 
-	# Сканирование обновлений на сайте и их запись.
-	if sys.argv[1] == "scan":
-		# Вывод в лог заголовка: другие методы.
-		logging.info("====== Scanning ======")
-		# Количество добавленных определений.
-		NewDefinitionsCount = 0
-
-		# Сканирование главы с переданным ID.
-		if sys.argv[2].isdigit() == True:
-			# Запись в лог сообщение о начале сканирования страницы.
-			logging.info("Scanning site on page: " + sys.argv[2] + "...")
-			# Сканирование страницы.
-			Answer = ScanTitles(Browser, Settings, sys.argv[2], "Scanning site on page: " + sys.argv[2])
-			# Подсчёт новых определений.
-			NewDefinitionsCount += Answer["new-definitions-count"]
-
-		# Сканирование всего сайта.
-		if sys.argv[2] == "-all":
-			# Запись в лог сообщение о начале сканирования всего сайта.
-			logging.info("Scanning all site...")
-			# Количество страниц на сайте.
-			PagesCount = int(GetPagesCount(Browser, Settings))
-
-			# Сканировать каждую страницу.
-			for PageNumber in range(1, PagesCount):
-				# Формирование строки внутрифункционального вывода.
-				InFuncMessage = InFuncMessage_Shutdown + "Scanning site on page: " + str(PageNumber) + " / " + str(PagesCount)
-				# Сканирование страницы.
-				Answer = ScanTitles(Browser, Settings, PageNumber, InFuncMessage, Delay = True)
-				# Подсчёт новых определений.
-				NewDefinitionsCount += Answer["new-definitions-count"]
-
-		# Сканирование обновлений сайта.
-		if sys.argv[2] == "-new":
-			# Запись в лог сообщение о начале сканирования обновлений сайта.
-			logging.info("Scanning updates on site...")
-			# Количество страниц на сайте.
-			PagesCount = int(GetPagesCount(Browser)) + 1
-			# Последний ID определения до сканирования.
-			LastChapterIDBeforeScanning = GetLastChapterDefinitionID()
-			# Последний ID определения после сканирования.
-			LastChapterIDAfterScanning = ""
-
-			# Сканировать каждую страницу.
-			for PageNumber in range(1, PagesCount):
-				# Формирование строки внутрифункционального вывода.
-				InFuncMessage= InFuncMessage_Shutdown + "Scanning updates on page: " + str(PageNumber)
-				# Сканирование страницы.
-				Answer = ScanTitles(Browser, Settings, PageNumber, InFuncMessage, Delay = True)
-				# Подсчёт новых определений.
-				NewDefinitionsCount += Answer["new-definitions-count"]
-				# Если функция сканирования нашла совпадение по ID главы, то завершить сканирование.
-				if Answer["already-exists"] == True:
-					break
-
-			# Запись в лог сообщения о завершении сканирования.
-			logging.info("Completed. New definitions count: " + str(NewDefinitionsCount) + ".")
-			# Получение последнего ID определения после сканирования.
-			LastChapterIDAfterScanning = GetLastChapterDefinitionID()
-
-			# Если сформирован диапазон последнего обновления, то сохранить его.
-			if LastChapterIDBeforeScanning != "" and LastChapterIDBeforeScanning != LastChapterIDAfterScanning:
-				# Формирование текстового диапазона.
-				Settings["last-scan-new-range"] = LastChapterIDBeforeScanning + '-' + LastChapterIDAfterScanning
-
-				# Сохранение настроек.
-				with open("Settings.json", "w", encoding = "utf-8") as FileWrite:
-					json.dump(Settings, FileWrite, ensure_ascii = False, indent = 2, separators = (',', ': '))
-
-	# Получение слайдов одной главы и сохранение в файл.
-	if sys.argv[1] == "getsl":
-		# Вывод в лог заголовка: другие методы.
+	# Парсинг тайтла.
+	if sys.argv[1] == "parce":
+		# Запись в лог сообщения: заголовок парсинга.
 		logging.info("====== Parcing ======")
-
-		# Получение слайдов главы с переданным ID.
-		if sys.argv[2].isdigit() == True:
-			# Генерирование сообщения для внутренних функций.
-			InFuncMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode
-			# Запуск процесса.
-			GetChapterSlides(Browser, Settings, sys.argv[2], InFuncMessage, FroceMode = IsForceModeActivated)
-
-# Однокомпонентные команды: chtest.
-if len(sys.argv) >= 2:
-
-	# Тестирование парсера на скрытность.
-	if sys.argv[1] == "chtest":
-		# Вывод в лог заголовка: другие методы.
-		logging.info("====== Other ======")
-		# Запуск теста Chrome Headless Detection.
-		ChromeHeadlessTest(Browser)
+		# Парсинг тайтла.
+		LocalTitle = TitleParser(Settings, Browser, sys.argv[2])
+		# Сохранение локальных файлов тайтла.
+		LocalTitle.Save()
 
 # Обработка исключения: недостаточно аргументов.
 elif len(sys.argv) == 1:
@@ -273,29 +195,22 @@ elif len(sys.argv) == 1:
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #
 #==========================================================================================#
 
-# Вывод в лог заголовка: завершение работы.
-logging.info("====== Exiting ======")
-
-# Закрытие браузера, если уже не закрыт.
 try:
+
+	# Попытка закрыть браузер.
 	Browser.close()
-# Обработка исключения: любое исключение.
+
 except Exception:
 	pass
 
+# Запись в лог сообщения: заголовок завершения работы скрипта.
+logging.info("====== Exiting ======")
 # Очистка консоли.
 Cls()
-
 # Время завершения работы скрипта.
 EndTime = time.time()
 # Запись времени завершения работы скрипта.
 logging.info("Script finished at " + str(datetime.datetime.now())[:-7] + ". Execution time: " + SecondsToTimeString(EndTime - StartTime) + ".")
-# Выключение логгирования.
-logging.shutdown()
-
-# Удаление лога, если в процессе работы скрипта не проводился парсинг или обновление, а также указано настройками.
-if "parce" not in sys.argv and "update" not in sys.argv and Settings["logs-cleanup"] == True:
-	os.remove(LogFilename)
 
 # Выключение ПК, если установлен соответствующий флаг.
 if IsShutdowAfterEnd == True:
@@ -303,3 +218,6 @@ if IsShutdowAfterEnd == True:
 	logging.info("Turning off the computer.")
 	# Выключение ПК.
 	Shutdown()
+
+# Выключение логгирования.
+logging.shutdown()

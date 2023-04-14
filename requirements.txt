@@ -1,4 +1,5 @@
 webdriver-manager
 BeautifulSoup4
+PyEnchant
 Selenium
 lxml

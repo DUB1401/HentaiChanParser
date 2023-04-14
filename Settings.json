@@ -1,10 +1,9 @@
 {
-  "directory": "",
-  "scan-target": "",
-  "login": "",
-  "password": "",
-  "delay": 5,
-  "getting-slide-sizes": true,
-  "logs-cleanup": true,
-  "last-scan-new-range": ""
+	"format": "dmp-v1",
+	"use-id-instead-slug": false,
+	"covers-directory": "",
+	"titles-directory": "",
+	"retry-tries": 3,
+	"retry-delay": 15,
+	"debug": true
 }
