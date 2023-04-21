@@ -71,9 +71,9 @@ os.environ["WDM_LOG"] = str(logging.NOTSET)
 # Глобальные настройки.
 Settings = {
 	"format": "dmp-v1",
-	"min-delay": 1,
-	"max-delay": 5,
+	"sizing-images": False,
 	"use-id-instead-slug": False,
+	"auto-branches-merging": False,
 	"covers-directory": "",
 	"titles-directory": "",
 	"retry-tries": 3,

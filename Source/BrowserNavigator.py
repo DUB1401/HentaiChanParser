@@ -24,13 +24,25 @@ class BrowserNavigator:
 		self.__Browser = Browser
 
 	# Возвращает HTML код тела страницы после полной загрузки.
-	def GetPageHTML(self) -> str:
+	def GetBodyHTML(self) -> str:
 		# HTML код тела страницы после полной загрузки.
-		PageHTML = str(self.__Browser.execute_script("return document.body.innerHTML;"))
+		BodyHTML = str(self.__Browser.execute_script("return document.body.innerHTML;"))
 
-		return PageHTML
+		return BodyHTML
 
 	# Выполняет переход на указанную страницу.
 	def LoadPage(self, URL: str):
-		# Переход по URL страницы.
-		self.__Browser.get(URL)
+		# Состояние: выполняются ли условия перехода по URL.
+		LoadCondition = True
+
+		# Проверка условия перехода: браузер находится на той же странице.
+		if self.__Browser.current_url == URL:
+			LoadCondition = False
+
+		# Проверка условия перехода: сдвиг равен нуля и браузер находится на той же странице.
+		if self.__Browser.current_url == URL.replace("?offset=0", ""):
+			LoadCondition = False
+
+		# Перейти на страницу если все условия выполнены.
+		if LoadCondition == True:
+			self.__Browser.get(URL)

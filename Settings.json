@@ -1,6 +1,8 @@
 {
 	"format": "dmp-v1",
+	"sizing-images": false,
 	"use-id-instead-slug": false,
+	"auto-branches-merging": false,
 	"covers-directory": "",
 	"titles-directory": "",
 	"retry-tries": 3,

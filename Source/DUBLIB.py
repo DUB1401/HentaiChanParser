@@ -152,10 +152,6 @@ def RenameDictKey(Dictionary: dict, OldKey: str, NewKey: str) -> dict:
 
 	return Result
 
-# Удаляет непечатаемые символы.
-def RemoveNonPrintableSymbols(String: str) -> str:
-	return ''.join(filter(lambda c: c in string.printable, String))
-
 # Удаляет теги HTML из строки.
 def RemoveHTML(TextHTML: str) -> str:
 	# Регулярное выражение фильтрации тегов HTML.

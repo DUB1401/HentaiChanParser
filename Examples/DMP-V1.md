@@ -16,59 +16,59 @@
 ```json
 {
 	"format": "dmp-v1",
-	"site": "remanga.org",
-	"id": 0,
-	"slug": "",
+	"site": "hentaichan.live",
+	"id": 123,
+	"slug": "123-manga-name",
 	"covers": [
 		{
-			"link": "",
-			"filename": "",
-			"width": 0,
-			"height": 0
+			"link": "https://link_to_cover/file.jpg",
+			"filename": "file.jpg",
+			"width": 480,
+			"height": 640
 		}
 	],
-	"ru-name": "",
-	"en-name": "",
-	"another-names": "",
-	"type": "",
-	"age-rating": 0,
-	"publication-year": 0,
-	"status": "",
-	"description": "",
+	"ru-name": "Название манги",
+	"en-name": "Manga name",
+	"another-names": "漫画名 / Mangamei",
+	"type": null,
+	"age-rating": 18,
+	"publication-year": null,
+	"status": null,
+	"description": "Первый абзац описания.\nВторой абзац описания.",
 	"is-licensed": false,
 	"genres": [
 		{
-			"id": 0,
-			"name": ""
+			"id": null,
+			"name": "Название жанра"
 		}
 	],
 	"tags": [
 		{
-			"id": 0,
-			"name": ""
+			"id": null,
+			"name": "Название тега"
 		}
 	],
 	"branches": [
 		{
-			"id": 0,
-			"chapters-count": 0
+			"id": 123001,
+			"chapters-count": 1
 		}
 	],
 	"chapters": {
-		"0": [
+		"123001": [
 			{
-				"id": 0,
-				"number": 0,
-				"volume": 0,
-				"name": "",
+				"id": 10,
+				"number": 1,
+				"volume": null,
+				"name": null,
 				"is-paid": false,
-				"translator": "",
+				"translator": "Никнейм переводчика",
 				"slides": [
 					{
 						"index": 1,
-						"link": "",
-						"width": 0,
-						"height": 0
+						"link": "https://link_to_slide/01.webp",
+						"width": 720,
+						"height": 1280
 					}
 				]
 				
@@ -79,4 +79,4 @@
 ```
 
 # Примечания
-1. Другие названия тайтла и переводчики отделяются сочетанием символов пробел-слеш-пробел (` / `).
+1. Другие названия тайтла и переводчики отделяются сочетанием символов ` / ` (пробел-слеш-пробел).
