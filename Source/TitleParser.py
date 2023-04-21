@@ -1,11 +1,16 @@
 from Source.BrowserNavigator import BrowserNavigator
 from Source.DUBLIB import CheckForCyrillicPresence
+from collections import Counter
 from selenium import webdriver
 from bs4 import BeautifulSoup
+from Source.DUBLIB import Cls
 
+import requests
 import enchant
 import logging
+import shutil
 import json
+import os
 import re
 
 class TitleParser:
@@ -14,22 +19,75 @@ class TitleParser:
 	# >>>>> СВОЙСТВА <<<<< #
 	#==========================================================================================#
 
-	# Глобальные настройки.
-	__Settings = dict()
+	# Количество выполненных слияний глав.
+	__MergedChaptersCount  = 0
+	# Список алиасов глав тайтла.
+	__ChaptersSlugs = list()
+	# Состояние: включена ли перезапись файлов.
+	__ForceMode = True
 	# Обработчик навигации экземпляра браузера.
 	__Navigator = None
+	# Глобальные настройки.
+	__Settings = dict()
 	# Экземпляр браузера.
 	__Browser = None
+	# Сообщение из внешнего обработчика.
+	__Message = ""
 	# Описательная структура тайтла.
 	__Title = None
 	# Алиас тайтла.
 	__Slug = None
 	# ID тайтла.
 	__ID = None
-
+	
 	#==========================================================================================#
 	# >>>>> МЕТОДЫ <<<<< #
 	#==========================================================================================#
+
+	# Дополняет главы данными о слайдах.
+	def __AmendChapters(self):
+		# Запись в лог сообщения: дополнение глав информацией о слайдах начато.
+		logging.info("Title: \"" + self.__Slug + "\". Amending...")
+		# Список ветвей.
+		BranchesID = self.__Title["chapters"].keys()
+		# Количество дополненных глав.
+		AmendedChaptersCount = 0
+		# Общее количество глав.
+		TotalChaptersCount = self.__GetTotalChaptersCount()
+
+		# Для каждой главы в каждой ветви получить слайды.
+		for BranchID in BranchesID:
+			for ChapterIndex in range(0, len(self.__Title["chapters"][BranchID])):
+				# Очистка консоли.
+				Cls()
+				# Вывод в терминал: прогресс дополнения.
+				print(self.__Message + "Amending chapters: " + str(AmendedChaptersCount + 1) + " / " + str(TotalChaptersCount - self.__MergedChaptersCount))
+
+				# Если в главе нет данных о слайдах.
+				if self.__Title["chapters"][BranchID][ChapterIndex]["slides"] == list():
+					# Алиас главы.
+					ChapterSlug = self.__FindChapterSlugInList(self.__Title["chapters"][BranchID][ChapterIndex]["id"])
+					# Получение данных о слайдах.
+					self.__Title["chapters"][BranchID][ChapterIndex]["slides"] = self.__GetChapterSlides(ChapterSlug)
+					# Инкремент количества дополненных глав.
+					AmendedChaptersCount += 1
+					# Запись в лог сообщения: глава дополнена.
+					logging.info("Title: \"" + self.__Slug + "\". Chapter " + str(self.__Title["chapters"][BranchID][ChapterIndex]["id"]) + " amended.")
+
+		# Запись в лог сообщения: количество дополненных глав.
+		logging.info("Title: \"" + self.__Slug + "\". Amended chapters: " + str(AmendedChaptersCount) + ".")
+
+	# Возвращает алиас главы по её ID.
+	def __FindChapterSlugInList(self, ChapterID: int) -> str:
+		# Искомый алиас.
+		SearchableSlug = None
+
+		# Поиск алиаса с указанным ID.
+		for Slug in self.__ChaptersSlugs:
+			if str(ChapterID) in Slug:
+				SearchableSlug = Slug
+
+		return SearchableSlug
 
 	# Возвращает структуру главы.
 	def __GetChapter(self, ChapterSlug: str) -> dict:
@@ -63,12 +121,12 @@ class TitleParser:
 		# Получение ника переводчика.
 		ChapterStruct["translator"] = TranslatorBlock.get_text()
 		# Получение слайдов главы.
-		ChapterStruct["slides"] = self.__GetChapterSlides(ChapterSlug)
+		ChapterStruct["slides"] = list()
 
 		# Преобразование номера главы в числовое.
-		if '.' in ChapterStruct["number"]:
+		if ChapterStruct["number"] != None and '.' in ChapterStruct["number"]:
 			ChapterStruct["number"] = float(ChapterStruct["number"])
-		else:
+		elif ChapterStruct["number"] != None:
 			ChapterStruct["number"] = int(ChapterStruct["number"])
 
 		# Если переводчика нет, то обнулить значение.
@@ -115,25 +173,26 @@ class TitleParser:
 				ChapterNumber = Bufer.group(0)
 
 		# Удаление вариантов написания главы.
-		for ChapterVariation in ChapterVariations:
-			ChapterNumber = ChapterNumber.replace(ChapterVariation, "").strip()
+		if ChapterNumber != None:
+			for ChapterVariation in ChapterVariations:
+				ChapterNumber = ChapterNumber.replace(ChapterVariation, "").strip()
 
-		try:
+			try:
 
-			# Попытка преобразовать значение в числовое.
-			if '.' in ChapterNumber:
-				float(ChapterNumber)
-			else:
-				int(ChapterNumber)
+				# Попытка преобразовать значение в числовое.
+				if '.' in ChapterNumber:
+					float(ChapterNumber)
+				else:
+					int(ChapterNumber)
 
-		except ValueError:
-			# Обнуление названия главы.
-			ChapterNumber = None
+			except ValueError:
+				# Обнуление названия главы.
+				ChapterNumber = None
 
 		return ChapterNumber
 
 	# Дополняет тайтл ветвями и главами.
-	def __GetChaptersData(self, ChaptersSlugs: list):
+	def __GetChaptersData(self):
 		# Список глав.
 		ChaptersList = list()
 		# Список ветвей.
@@ -144,7 +203,7 @@ class TitleParser:
 		TranslatorsChaptersGroups = dict()
 
 		# Для каждого алиаса создать структуру главы.
-		for Slug in ChaptersSlugs:
+		for Slug in self.__ChaptersSlugs:
 			ChaptersList.append(self.__GetChapter(Slug))
 
 		# Распределение глав по переводчикам.
@@ -245,6 +304,9 @@ class TitleParser:
 			self.__Title["branches"] = NewBranches
 			# Запись структуры глав.
 			self.__Title["chapters"] = NewChapters
+
+		# Запись в лог сообщения: получены данные о главах.
+		logging.info("Title: \"" + self.__Slug + "\". Request title branches... Done.")
 
 	# Возвращает структуру слайдов главы.
 	def __GetChapterSlides(self, ChapterSlug: str) -> list:
@@ -469,6 +531,20 @@ class TitleParser:
 		# Запись в лог сообщения: получено описание тайтла.
 		logging.info("Title: \"" + self.__Slug + "\". Request title description... Done.")
 
+	# Возвращает суммарное количество глав во всех ветвях.
+	def __GetTotalChaptersCount(self) -> int:
+		# Счётчик.
+		CounterObject = Counter()
+
+		# Подсчёт суммы глав во всех ветвях.
+		for BranchDescription in self.__Title["branches"]:
+			CounterObject.update(BranchDescription)
+
+		# Суммарное количество глав во всех ветвях.
+		TotalChaptersCount = dict(CounterObject)["chapters-count"]
+
+		return TotalChaptersCount
+
 	# Возвращает количество страниц в каталоге глав тайтла.
 	def __GetRelatedPagesCount(self) -> int:
 		# Переход на страницу тайтла.
@@ -488,8 +564,53 @@ class TitleParser:
 
 		return PagesCount
 
+	# Выполняет слияние ветвей локального файла и полученных с сервера.
+	def __MergeBranches(self, LocalFilename: str):
+		# Список локальных глав.
+		LocalChaptersList = list()
+		# Запись в лог сообщения: найден локальный описательный файл тайтла.
+		logging.info("Title: \"" + self.__Slug + "\". Local JSON already exists. Trying to merge...")
+
+		# Открытие локального описательного файла JSON.
+		with open(self.__Settings["titles-directory"] + LocalFilename + ".json", encoding = "utf-8") as FileRead:
+			# Локальный описательный файл JSON.
+			LocalTitle = None
+
+			try:
+				# Попытка прочитать файл.
+				LocalTitle = json.load(FileRead)
+
+			except json.decoder.JSONDecodeError:
+				# Запись в лог ошибки: не удалось прочитать существующий файл.
+				logging.error("Title: \"" + self.__TitleHeader + "\". Unable to read existing file!")
+
+			# Записать все главы в каждой ветви.
+			for BranchKey in LocalTitle["chapters"].keys():
+				LocalChaptersList += LocalTitle["chapters"][BranchKey]
+
+		# Произвести слияние информации о слайдах из локального файла с данными, полученными с сервера.
+		for BranchID in self.__Title["chapters"].keys():
+			for ChapterIndex in range(0, len(self.__Title["chapters"][BranchID])):
+				# ID текущей главы.
+				ChapterID = self.__Title["chapters"][BranchID][ChapterIndex]["id"]
+
+				# Поиск данных о слайдах в локальных главах.
+				for LocalChapter in LocalChaptersList:
+
+					# Если ID обрабатываемой главы совпал с ID локальной главы.
+					if ChapterID == LocalChapter["id"]:
+						# Копирование данных о слайдах.
+						self.__Title["chapters"][BranchID][ChapterIndex]["slides"] = LocalChapter["slides"]
+						# Инкремент количества слияний.
+						self.__MergedChaptersCount += 1
+
+		# Запись в лог сообщения: завершение слияния.
+		if self.__MergedChaptersCount > 0:
+			logging.info("Title: \"" + self.__Slug + "\". Merged chapters: " + str(self.__MergedChaptersCount) + ".")
+		else:
+			logging.info("Title: \"" + self.__Slug + "\". There are no new chapters.")
+
 	# Возвращает структуру из русского, английского и других названий тайтла.
-	# TODO: считать название английским при совпадении более 50% слов со словарными образцами.
 	def __ParceTitleName(self, TitleName: str) -> dict:
 		# Список ругулярных выражений для поиска номера главы.
 		ChapterNumberReList = [r"глав[аы] \d+([\.-])?(\d+)?", r"\d+([\.-])?(\d+)? глав[аы]", r"част[иь] \d+([\.-])?(\d+)?", r"\d+([\.-])?(\d+)? част[иь]", r"Ch. \d+([\.-])?(\d+)?"]
@@ -553,12 +674,25 @@ class TitleParser:
 			if IsLocaled == False:
 				# Словарь английских слов.
 				DictEnUS = enchant.Dict("en_US")
+				# Список слов в названии тайтла длинной более 2-ух символов.
+				Words = list()
+				# Количество слов, найденных в английском словаре.
+				EnglishWordsCount = 0
 
-				# Проверка каждого слова длиннее двух символов по словарю.
+				# Составление списка слов длинной более 2-ух символов.
 				for Word in list(Name.split(' ')):
-					if len(Word) > 2 and DictEnUS.check(Word) == True:
-						TitleNameStruct["en-name"] = Name
-						IsLocaled = True
+					if len(Word) > 2:
+						Words.append(Word)
+
+				# Проверка каждого слова длинной более 2-ух символов по словарю.
+				for Word in Words:
+					if DictEnUS.check(Word) == True:
+						EnglishWordsCount += 1
+				
+				# Если больше половины слов английские, то считать часть названия английской.
+				if EnglishWordsCount >= int(len(Words) / 2):
+					TitleNameStruct["en-name"] = Name
+					IsLocaled = True
 
 			# Обработка: транслитерированное название.
 			if IsLocaled == False:
@@ -576,8 +710,8 @@ class TitleParser:
 
 		return TitleNameStruct
 
-	# Конструктор: задаёт глоабльные настройки, экземпляр браузера и алиас тайтла. Инициализирует парсер.
-	def __init__(self, Settings: dict, Browser: webdriver.Chrome, Slug: str):
+	# Конструктор: строит структуру описательного файла тайтла и проверяет наличие локальных данных.
+	def __init__(self, Settings: dict, Browser: webdriver.Chrome, Slug: str, ForceMode: bool = False, Message: str = "", Amending: bool = True):
 
 		#---> Генерация свойств.
 		#==========================================================================================#
@@ -605,25 +739,121 @@ class TitleParser:
 			"chapters": dict()
 		}
 		self.__Slug = Slug
-		
+		self.__ForceMode = ForceMode
+		self.__Message = Message + "Current title: " + self.__Slug + "\n\n"
+
 		#---> Получение данных о тайтле.
 		#==========================================================================================#
-		# Запись в лог сообщения: парсинг начат.
-		logging.info("Title: \"" + self.__Slug + "\". Parcing...")
 		# Список глав в тайтле.
-		ChaptersSlugs = self.__GetChaptersList()
+		self.__ChaptersSlugs = self.__GetChaptersList()
 		# Установка алиаса первой главы как основного для тайтла.
-		self.__Slug = ChaptersSlugs[0]
+		self.__Slug = self.__ChaptersSlugs[0]
 		# Установка ID первой главы как основного для тайтла.
 		self.__ID = self.__GetChapterID(self.__Slug)
-		# Получение описательных данных тайтла.
-		self.__GetTitleData()
-		# Получение данных глав тайтла.
-		self.__GetChaptersData(ChaptersSlugs)
+		# Запись в лог сообщения: парсинг начат.
+		logging.info("Title: \"" + self.__Slug + "\". Parcing...")
+
+		# Если включена полная обработка файла.
+		if Amending == True:
+			# Получение описательных данных тайтла.
+			self.__GetTitleData()
+			# Получение данных глав тайтла.
+			self.__GetChaptersData()
+
+			# Если включён режим перезаписи.
+			if ForceMode == False:
+
+				# Слияние с локальным описательным файлом.
+				if os.path.exists(self.__Settings["titles-directory"] + self.__Slug + ".json"):
+					self.__MergeBranches(self.__Slug)
+				elif os.path.exists(self.__Settings["titles-directory"] + self.__ID + ".json"):
+					self.__MergeBranches(self.__ID)
+
+			# Дополняет главы данными о слайдах.
+			self.__AmendChapters()
+
+	# Загружает обложку тайтла.
+	def DownloadCover(self):
+		# URL обложки.
+		CoverURL = self.__Title["covers"][0]["link"]
+		# Название файла обложки.
+		CoverFilename = self.__Title["covers"][0]["filename"]
+		# Ответ запроса.
+		Response = None
+		# Счётчик загруженных обложек.
+		DownloadedCoversCounter = 0
+		# Используемое имя тайтла: ID или алиас.
+		UsedTitleName = None
+		# Очистка консоли.
+		Cls()
+		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
+		print(self.__Message, end = "")
+
+		# Установка используемого имени тайтла.
+		if self.__Settings["use-id-instead-slug"] == False:
+			UsedTitleName = self.__Slug
+		else:
+			UsedTitleName = str(self.__ID)
+
+		# Если включён режим перезаписи, то удалить файл обложки.
+		if self.__ForceMode == True:
+					
+			# Удалить файл обложки.
+			if os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
+				shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug) 
+			elif os.path.exists(self.__Settings["covers-directory"] + self.__ID + "/" + CoverFilename):
+				shutil.rmtree(self.__Settings["covers-directory"] + self.__ID) 
+
+		# Удаление папки для обложек с алиасом в названии, если используется ID.
+		if self.__Settings["use-id-instead-slug"] == True and os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
+			shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug)
+
+		# Удаление папки для обложек с ID в названии, если используется алиас.
+		if self.__Settings["use-id-instead-slug"] == False and os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
+			shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID))
+
+		# Проверка существования файла обложки.
+		if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename) == False:
+			# Вывод в терминал URL загружаемой обложки.
+			print("Downloading cover: \"" + CoverURL + "\"... ", end = "")
+			# Выполнение запроса.
+			Response = requests.get(CoverURL)
+
+			# Проверка успешности запроса.
+			if Response.status_code == 200:
+
+				# Создание папки для обложек.
+				if os.path.exists(self.__Settings["covers-directory"]) == False:
+					os.makedirs(self.__Settings["covers-directory"])
+
+				# Создание папки для конкретной обложки.
+				if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName) == False:
+					os.makedirs(self.__Settings["covers-directory"] + UsedTitleName)
+
+				# Открытие потока записи.
+				with open(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename, "wb") as FileWrite:
+					# Запись изображения.
+					FileWrite.write(Response.content)
+					# Инкремент счётчика загруженных обложек.
+					DownloadedCoversCounter += 1
+					# Вывод в терминал сообщения об успешной загрузке.
+					print("Done.")
+
+			else:
+				# Запись в лог сообщения о неудачной попытке загрузки обложки.
+				logging.error("Title: \"" + self.__Slug + "\". Unable download cover: \"" + CoverURL + "\". Response code: " + str(Response.status_code) + ".")
+				# Вывод в терминал сообщения об успешной загрузке.
+				print("Failure!")
+
+		else:
+			# Вывод в терминал: URL загружаемой обложки.
+			print("Cover already exist: \"" + CoverURL + "\". Skipped. ")
+
+		# Запись в лог сообщения: количество загруженных обложек.
+		logging.info("Title: \"" + self.__Slug + "\". Covers downloaded: " + str(DownloadedCoversCounter) + ".")
 
 	# Сохраняет локальный JSON файл.
 	def Save(self):
-
 		# Используемое имя тайтла: ID или алиас.
 		UsedTitleName = None
 
@@ -636,3 +866,9 @@ class TitleParser:
 		# Сохранение локального файла JSON.
 		with open(self.__Settings["titles-directory"] + UsedTitleName + ".json", "w", encoding = "utf-8") as FileWrite:
 			json.dump(self.__Title, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
+
+			# Запись в лог сообщения: создан или обновлён локальный файл.
+			if self.__MergedChaptersCount > 0:
+				logging.info("Title: \"" + self.__Slug + "\". Updated.")
+			else:
+				logging.info("Title: \"" + self.__Slug + "\". Parced.")

@@ -27,20 +27,12 @@ if sys.version_info < PythonMinimalVersion:
 	sys.exit("Python %s.%s or later is required.\n" % PythonMinimalVersion)
 
 #==========================================================================================#
-# >>>>> ПРОВЕРКА НАЛИЧИЯ ДИРЕКТОРИЙ <<<<< #
-#==========================================================================================#
-
-# Список необходимых директорий.
-ImportantDirectories = ["Covers", "Logs", "Titles"]
-
-# Создание отсутствующих директорий.
-for DirectoryName in ImportantDirectories:
-	if os.path.isdir(DirectoryName) == False:
-		os.makedirs(DirectoryName)
-
-#==========================================================================================#
 # >>>>> ИНИЦИАЛИЗАЦИЯ ЛОГОВ <<<<< #
 #==========================================================================================#
+
+# Проверка наличия директории логов.
+if os.path.isdir("Logs/") == False:
+	os.makedirs("Logs/")
 
 # Получение текущей даты.
 CurrentDate = datetime.datetime.now()
@@ -106,8 +98,20 @@ if os.path.exists("Settings.json"):
 		# Приведение формата описательного файла к нижнему регистру.
 		Settings["format"] = Settings["format"].lower()
 
-		# Запись в шапку лога формата выходного файла.
+		# Запись в лог сообщения: формат выходного файла.
 		logging.info("Output file format: \"" + Settings["format"] + "\".")
+
+		# Запись в лог сообщения: использование ID вместо алиаса.
+		if Settings["use-id-instead-slug"] == True:
+			logging.info("Using ID instead slug: ON.")
+		else:
+			logging.info("Using ID instead slug: OFF.")
+
+		# Запись в лог сообщения: использование ID вместо алиаса.
+		if Settings["auto-branches-merging"] == True:
+			logging.info("Automatic merging of branches: ON.")
+		else:
+			logging.info("Automatic merging of branches: OFF.")
 
 #==========================================================================================#
 # >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
@@ -152,10 +156,11 @@ InFuncMessage_ForceMode = ""
 if "-f" in sys.argv:
 	# Включение режима перезаписи.
 	IsForceModeActivated = True
-	# Запись в лог сообщения о включении режима перезаписи.
-	logging.info("Force mode: ON")
+	# Запись в лог сообщения: включён режим перезаписи.
+	logging.info("Force mode: ON.")
 	# Установка сообщения для внутренних функций.
 	InFuncMessage_ForceMode = "Force mode: ON\n"
+
 else:
 	# Запись в лог сообщения об отключённом режиме перезаписи.
 	logging.info("Force mode: OFF")
@@ -166,7 +171,7 @@ else:
 if "-s" in sys.argv:
 	# Включение режима.
 	IsShutdowAfterEnd = True
-	# Запись в лог сообщения о том, что ПК будет выключен после завершения работы.
+	# Запись в лог сообщения: ПК будет выключен после завершения работы.
 	logging.info("Computer will be turned off after the parser is finished!")
 	# Установка сообщения для внутренних функций.
 	InFuncMessage_Shutdown = "Computer will be turned off after the parser is finished!\n"
@@ -175,7 +180,7 @@ if "-s" in sys.argv:
 # >>>>> ОБРАБОТКА ОСНОВНЫХ КОММАНД <<<<< #
 #==========================================================================================#
 
-# Двухкомпонентные команды: parce, update, scan.
+# Двухкомпонентные команды: getcov, parce.
 if len(sys.argv) >= 3:
 
 	# Парсинг тайтла.
@@ -183,20 +188,30 @@ if len(sys.argv) >= 3:
 		# Запись в лог сообщения: заголовок парсинга.
 		logging.info("====== Parcing ======")
 		# Парсинг тайтла.
-		LocalTitle = TitleParser(Settings, Browser, sys.argv[2])
+		LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
+		# Загружает обложку тайтла.
+		LocalTitle.DownloadCover()
 		# Сохранение локальных файлов тайтла.
 		LocalTitle.Save()
 
+	# Загрузка обложки.
+	elif sys.argv[1] == "getcov":
+		# Запись в лог сообщения: заголовок парсинга.
+		logging.info("====== Parcing ======")
+		# Парсинг тайтла.
+		LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
+		# Сохранение локальных файлов тайтла.
+		LocalTitle.DownloadCovers()
+
 # Обработка исключения: недостаточно аргументов.
 elif len(sys.argv) == 1:
-	logging.error("Not enough arguments.")
+	logging.critical("Not enough arguments.")
 
 #==========================================================================================#
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #
 #==========================================================================================#
 
 try:
-
 	# Попытка закрыть браузер.
 	Browser.close()
 
