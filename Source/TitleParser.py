@@ -1,5 +1,6 @@
 from Source.BrowserNavigator import BrowserNavigator
 from Source.DUBLIB import CheckForCyrillicPresence
+from Source.Formatter import Formatter
 from collections import Counter
 from selenium import webdriver
 from bs4 import BeautifulSoup
@@ -442,9 +443,16 @@ class TitleParser:
 
 		# Если обложка есть, определить её URL и название.
 		if "src" in CoverHTML.attrs.keys():
-			Cover["link"] = str(CoverHTML["src"])
-			Cover["filename"] = Cover["link"].split('/')[-1]
-			CoversList.append(Cover)
+
+			# Если у обложки есть ссылка на изображение.
+			if str(CoverHTML["src"]) != "":
+				Cover["link"] = str(CoverHTML["src"])
+				Cover["filename"] = Cover["link"].split('/')[-1]
+				CoversList.append(Cover)
+			
+			else:
+				# Запись в лог предупреждения: обложка отсутствует.
+				logging.warning("Title: \"" + self.__Slug + "\". Cover missing.")
 
 		return CoversList
 
@@ -580,13 +588,22 @@ class TitleParser:
 				# Попытка прочитать файл.
 				LocalTitle = json.load(FileRead)
 
+				# Инициализация конвертера.
+				FormatterObject = Formatter(self.__Settings, LocalTitle)
+
+				# Если формат локального файла нестандартный.
+				if FormatterObject.GetFormat() == "htmp-v1":
+					# Получение списка глав.
+					LocalChaptersList = LocalTitle["chapters"]
+
 			except json.decoder.JSONDecodeError:
 				# Запись в лог ошибки: не удалось прочитать существующий файл.
 				logging.error("Title: \"" + self.__TitleHeader + "\". Unable to read existing file!")
 
-			# Записать все главы в каждой ветви.
-			for BranchKey in LocalTitle["chapters"].keys():
-				LocalChaptersList += LocalTitle["chapters"][BranchKey]
+		# Добавить индексы в определения слайдов для совместимости с DMP-V1.
+		for ChapterIndex in range(0, len(LocalChaptersList)):
+			for SlideIndex in range(0, len(LocalChaptersList[ChapterIndex]["slides"])):
+				LocalChaptersList[ChapterIndex]["slides"][SlideIndex] = { "index": SlideIndex + 1 } | LocalChaptersList[ChapterIndex]["slides"][SlideIndex]
 
 		# Произвести слияние информации о слайдах из локального файла с данными, полученными с сервера.
 		for BranchID in self.__Title["chapters"].keys():
@@ -644,6 +661,12 @@ class TitleParser:
 		else:
 			# Запись названия тайтла для дальнейшей обработки.
 			NamePartsList.append(TitleName)
+
+		# Если часть названия содержит слеш, то разделить её.
+		for Index in range(0, len(NamePartsList)):
+			if '/' in NamePartsList[Index]:
+				NamePartsList.append(NamePartsList[Index].split('/')[1])
+				NamePartsList[Index] = NamePartsList[Index].split('/')[0]
 
 		# Удаление из названий номера главы.
 		for Name in NamePartsList:
@@ -766,26 +789,18 @@ class TitleParser:
 				# Слияние с локальным описательным файлом.
 				if os.path.exists(self.__Settings["titles-directory"] + self.__Slug + ".json"):
 					self.__MergeBranches(self.__Slug)
-				elif os.path.exists(self.__Settings["titles-directory"] + self.__ID + ".json"):
-					self.__MergeBranches(self.__ID)
+				elif os.path.exists(self.__Settings["titles-directory"] + str(self.__ID) + ".json"):
+					self.__MergeBranches(str(self.__ID))
 
 			# Дополняет главы данными о слайдах.
 			self.__AmendChapters()
 
 	# Загружает обложку тайтла.
 	def DownloadCover(self):
-		# URL обложки.
-		CoverURL = self.__Title["covers"][0]["link"]
-		# Название файла обложки.
-		CoverFilename = self.__Title["covers"][0]["filename"]
-		# Ответ запроса.
-		Response = None
 		# Счётчик загруженных обложек.
 		DownloadedCoversCounter = 0
 		# Используемое имя тайтла: ID или алиас.
 		UsedTitleName = None
-		# Очистка консоли.
-		Cls()
 		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
 		print(self.__Message, end = "")
 
@@ -795,59 +810,70 @@ class TitleParser:
 		else:
 			UsedTitleName = str(self.__ID)
 
-		# Если включён режим перезаписи, то удалить файл обложки.
-		if self.__ForceMode == True:
+		# Для каждой обложки.
+		for CoverIndex in range(0, len(self.__Title["covers"])):
+			# URL обложки.
+			CoverURL = self.__Title["covers"][CoverIndex]["link"]
+			# Название файла обложки.
+			CoverFilename = self.__Title["covers"][CoverIndex]["filename"]
+			# Ответ запроса.
+			Response = None
+			# Очистка консоли.
+			Cls()
+
+			# Если включён режим перезаписи, то удалить файл обложки.
+			if self.__ForceMode == True:
 					
-			# Удалить файл обложки.
-			if os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
-				shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug) 
-			elif os.path.exists(self.__Settings["covers-directory"] + self.__ID + "/" + CoverFilename):
-				shutil.rmtree(self.__Settings["covers-directory"] + self.__ID) 
+				# Удалить файл обложки.
+				if os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
+					shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug) 
+				elif os.path.exists(self.__Settings["covers-directory"] + self.__ID + "/" + CoverFilename):
+					shutil.rmtree(self.__Settings["covers-directory"] + self.__ID) 
 
-		# Удаление папки для обложек с алиасом в названии, если используется ID.
-		if self.__Settings["use-id-instead-slug"] == True and os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
-			shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug)
+			# Удаление папки для обложек с алиасом в названии, если используется ID.
+			if self.__Settings["use-id-instead-slug"] == True and os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
+				shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug)
 
-		# Удаление папки для обложек с ID в названии, если используется алиас.
-		if self.__Settings["use-id-instead-slug"] == False and os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
-			shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID))
+			# Удаление папки для обложек с ID в названии, если используется алиас.
+			if self.__Settings["use-id-instead-slug"] == False and os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
+				shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID))
 
-		# Проверка существования файла обложки.
-		if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename) == False:
-			# Вывод в терминал URL загружаемой обложки.
-			print("Downloading cover: \"" + CoverURL + "\"... ", end = "")
-			# Выполнение запроса.
-			Response = requests.get(CoverURL)
+			# Проверка существования файла обложки.
+			if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename) == False:
+				# Вывод в терминал URL загружаемой обложки.
+				print("Downloading cover: \"" + CoverURL + "\"... ", end = "")
+				# Выполнение запроса.
+				Response = requests.get(CoverURL)
 
-			# Проверка успешности запроса.
-			if Response.status_code == 200:
+				# Проверка успешности запроса.
+				if Response.status_code == 200:
 
-				# Создание папки для обложек.
-				if os.path.exists(self.__Settings["covers-directory"]) == False:
-					os.makedirs(self.__Settings["covers-directory"])
+					# Создание папки для обложек.
+					if os.path.exists(self.__Settings["covers-directory"]) == False:
+						os.makedirs(self.__Settings["covers-directory"])
 
-				# Создание папки для конкретной обложки.
-				if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName) == False:
-					os.makedirs(self.__Settings["covers-directory"] + UsedTitleName)
+					# Создание папки для конкретной обложки.
+					if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName) == False:
+						os.makedirs(self.__Settings["covers-directory"] + UsedTitleName)
 
-				# Открытие потока записи.
-				with open(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename, "wb") as FileWrite:
-					# Запись изображения.
-					FileWrite.write(Response.content)
-					# Инкремент счётчика загруженных обложек.
-					DownloadedCoversCounter += 1
+					# Открытие потока записи.
+					with open(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename, "wb") as FileWrite:
+						# Запись изображения.
+						FileWrite.write(Response.content)
+						# Инкремент счётчика загруженных обложек.
+						DownloadedCoversCounter += 1
+						# Вывод в терминал сообщения об успешной загрузке.
+						print("Done.")
+
+				else:
+					# Запись в лог сообщения о неудачной попытке загрузки обложки.
+					logging.error("Title: \"" + self.__Slug + "\". Unable download cover: \"" + CoverURL + "\". Response code: " + str(Response.status_code) + ".")
 					# Вывод в терминал сообщения об успешной загрузке.
-					print("Done.")
+					print("Failure!")
 
 			else:
-				# Запись в лог сообщения о неудачной попытке загрузки обложки.
-				logging.error("Title: \"" + self.__Slug + "\". Unable download cover: \"" + CoverURL + "\". Response code: " + str(Response.status_code) + ".")
-				# Вывод в терминал сообщения об успешной загрузке.
-				print("Failure!")
-
-		else:
-			# Вывод в терминал: URL загружаемой обложки.
-			print("Cover already exist: \"" + CoverURL + "\". Skipped. ")
+				# Вывод в терминал: URL загружаемой обложки.
+				print("Cover already exist: \"" + CoverURL + "\". Skipped. ")
 
 		# Запись в лог сообщения: количество загруженных обложек.
 		logging.info("Title: \"" + self.__Slug + "\". Covers downloaded: " + str(DownloadedCoversCounter) + ".")
@@ -861,11 +887,15 @@ class TitleParser:
 		if self.__Settings["use-id-instead-slug"] == False:
 			UsedTitleName = self.__Title["slug"]
 		else:
-			UsedTitleName = self.__ID
+			UsedTitleName = str(self.__ID)
+
+		# Инициализация конвертера.
+		FormatterObject = Formatter(self.__Settings, self.__Title, "dmp-v1")
+		FormattedTitle = FormatterObject.Convert(self.__Settings["format"])
 
 		# Сохранение локального файла JSON.
 		with open(self.__Settings["titles-directory"] + UsedTitleName + ".json", "w", encoding = "utf-8") as FileWrite:
-			json.dump(self.__Title, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
+			json.dump(FormattedTitle, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
 
 			# Запись в лог сообщения: создан или обновлён локальный файл.
 			if self.__MergedChaptersCount > 0:

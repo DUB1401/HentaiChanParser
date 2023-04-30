@@ -71,6 +71,205 @@ class Formatter:
 	# >>>>> КОНВЕРТЕРЫ <<<<< #
 	#==========================================================================================#
 
+	# Конвертер: DMP-V1 > HTMP-V1.
+	def __DMP1_to_HTMP1(self):
+		# Перечисление типов тайтла.
+		Types = ["MANGA", "MANHWA", "MANHUA", "WESTERN_COMIC", "RUS_COMIC", "INDONESIAN_COMIC", "ANOTHER"]
+		# Перечисление статусов тайтла.
+		Statuses = ["COMPLETED", "ACTIVE", "ABANDONED", "NOT_FOUND", "", "LICENSED"]
+		# Буфер обработки возвращаемой структуры.
+		FormattedTitle = dict()
+
+		# Перечисление названий жанров, обозначающих однополые отношения.
+		HomoGenres = ["яой", "сёдзё-ай", "сёнэн-ай", "юри"]
+
+		#---> Генерация структуры.
+		#==========================================================================================#
+		FormattedTitle["format"] = "htmp-v1"
+		FormattedTitle["site"] = self.__OriginalTitle["site"]
+		FormattedTitle["id"] = self.__OriginalTitle["id"]
+		FormattedTitle["img"] = dict()
+		FormattedTitle["engTitle"] = self.__OriginalTitle["en-name"]
+		FormattedTitle["rusTitle"] = self.__OriginalTitle["ru-name"]
+		FormattedTitle["alternativeTitle"] = self.__OriginalTitle["another-names"]
+		FormattedTitle["slug"] = self.__OriginalTitle["slug"]
+		FormattedTitle["desc"] = self.__OriginalTitle["description"]
+		FormattedTitle["issue_year"] = self.__OriginalTitle["publication-year"]
+		FormattedTitle["branchId"] = self.__OriginalTitle["branches"][0]["id"]
+		FormattedTitle["admin_rating"] = ""
+		FormattedTitle["count_rating"] = 0
+		FormattedTitle["age_limit"] = self.__OriginalTitle["age-rating"]
+		FormattedTitle["status"] = self.__OriginalTitle["status"]
+		FormattedTitle["count_bookmarks"] = 0
+		FormattedTitle["total_votes"] = 0
+		FormattedTitle["total_views"] = 0
+		FormattedTitle["type"] = self.__OriginalTitle["type"]
+		FormattedTitle["genres"] = self.__OriginalTitle["genres"]
+		FormattedTitle["tags"] = self.__OriginalTitle["tags"]
+		FormattedTitle["bookmark_type"] = None
+		FormattedTitle["branches"] = list()
+		FormattedTitle["count_chapters"] = self.__OriginalTitle["branches"][0]["chapters-count"]
+		FormattedTitle["first_chapter"] = dict()
+		FormattedTitle["continue_reading"] = None
+		FormattedTitle["is_licensed"] = self.__OriginalTitle["is-licensed"]
+		FormattedTitle["newlate_id"] = None
+		FormattedTitle["newlate_title"] = None
+		FormattedTitle["related"] = None
+		FormattedTitle["uploaded"] = 0
+		FormattedTitle["isHomo"] = False
+		FormattedTitle["adaptation"] = None
+		FormattedTitle["publishers"] = list()
+		FormattedTitle["isYaoi"] = False
+		FormattedTitle["isHentai"] = False
+		FormattedTitle["chapters"] = list()
+
+		#---> Внесение правок.
+		#==========================================================================================#
+
+		# Генерауия ключей обложек.
+		FormattedTitle["img"]["high"] = None
+		FormattedTitle["img"]["mid"] = None
+		FormattedTitle["img"]["low"] = None
+
+		# Конвертирование обложек.
+		for CoverIndex in range(0, len(self.__OriginalTitle["covers"])):
+			# Используемое наименование тайтла.
+			UsetTitleName = None
+
+			# Если используется ID для именования тайтла.
+			if self.__Settings["use-id-istead-slug"] == True:
+				UsetTitleName = self.__OriginalTitle["slug"]
+			else:
+				UsetTitleName = str(self.__OriginalTitle["id"])
+
+			if CoverIndex == 1:
+				FormattedTitle["img"]["high"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
+			if CoverIndex == 2:
+				FormattedTitle["img"]["mid"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
+			if CoverIndex == 3:
+				FormattedTitle["img"]["low"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
+
+		# Проверка наличия статуса.
+		if FormattedTitle["status"] == None:
+			FormattedTitle["status"] = "NOT_FOUND"
+
+		# Проверка наличия типа.
+		if FormattedTitle["type"] == None:
+			FormattedTitle["type"] = "MANGA"
+
+		# Конвертирование ветвей.
+		for OriginalBranch in self.__OriginalTitle["branches"]:
+			# Буфер текущей ветви.
+			CurrentBranch = dict()
+			# Перенос данных.
+			CurrentBranch["id"] = OriginalBranch["id"]
+			CurrentBranch["img"] = ""
+			CurrentBranch["subscribed"] = False
+			CurrentBranch["total_votes"] = 0
+			CurrentBranch["count_chapters"] = OriginalBranch["chapters-count"]
+			CurrentBranch["publishers"] = list()
+			# Сохранение результата.
+			FormattedTitle["branches"].append(CurrentBranch)
+
+		# Определение наличия жанра однополых отношений.
+		for Genre in FormattedTitle["genres"]:
+			if Genre["name"].lower() in HomoGenres:
+				FormattedTitle["isHomo"] = True
+
+		# Определение наличия жанра яой.
+		for Genre in FormattedTitle["genres"]:
+			if Genre["name"].lower() == "яой":
+				FormattedTitle["isYaoi"] = True
+
+		# Является ли тайтл хентаем.
+		if FormattedTitle["site"] == "hentaichan.live":
+				FormattedTitle["isHentai"] = True
+		
+		# Индекс обрабатываемой главы.
+		CurrentChapterIndex = 1
+
+		# Конвертирование глав.
+		for OriginalChapter in self.__OriginalTitle["chapters"][list(self.__OriginalTitle["chapters"].keys())[0]]:
+			# Буфер текущей главы.
+			CurrentChapter = dict()
+			# Перенос данных.
+			CurrentChapter["id"] = OriginalChapter["id"]
+			CurrentChapter["rated"] = None
+			CurrentChapter["viewed"] = None
+			CurrentChapter["is_bought"] = None
+			CurrentChapter["publishers"] = list()
+			CurrentChapter["index"] = CurrentChapterIndex
+			CurrentChapter["tom"] = OriginalChapter["volume"]
+			CurrentChapter["chapter"] = OriginalChapter["number"]
+			CurrentChapter["title"] = OriginalChapter["name"]
+			CurrentChapter["price"] = None
+			CurrentChapter["score"] = 0
+			CurrentChapter["upload_date"] = ""
+			CurrentChapter["pub_date"] = None
+			CurrentChapter["is_paid"] = False
+			CurrentChapter["slides"] = OriginalChapter["slides"]
+
+			# Проверка отсутствия тома.
+			if CurrentChapter["tom"] == None:
+				CurrentChapter["tom"] = 1
+
+			# Проверка отсутствия названия.
+			if CurrentChapter["title"] == None:
+				CurrentChapter["title"] = ""
+
+			# Генерация структуры переводчиков.
+			if OriginalChapter["translator"] != None:
+				# Буфер переводчиков.
+				Publishers = dict()
+				# Перенос данных.
+				Publishers["id"] = 0
+				Publishers["name"] = OriginalChapter["translator"]
+				Publishers["img"] = ""
+				Publishers["dir"] = ""
+				Publishers["tagline"] = ""
+				Publishers["type"] = "Переводчик"
+				# Сохранение результата.
+				CurrentChapter["publishers"].append(Publishers)
+
+			# Удаление индексов из слайдов.
+			for SlideIndex in range(0, len(CurrentChapter["slides"])):
+				del CurrentChapter["slides"][SlideIndex]["index"]
+
+			# Если у главы нет номера, то присвоить ей номер равный индексу.
+			if CurrentChapter["chapter"] == None:
+				CurrentChapter["chapter"] = CurrentChapterIndex
+
+			# Сохранение результата.
+			FormattedTitle["chapters"].append(CurrentChapter)
+			# Инкремент индекса главы.
+			CurrentChapterIndex += 1
+
+		# Формирование структуры первой главы.
+		FormattedTitle["first_chapter"]["id"] = FormattedTitle["chapters"][0]["id"]
+		FormattedTitle["first_chapter"]["tome"] = FormattedTitle["chapters"][0]["tom"]
+		FormattedTitle["first_chapter"]["chapter"] = str(FormattedTitle["chapters"][0]["chapter"])
+
+		# Проставление ID в жанрах.
+		for GenreIndex in range(0, len(FormattedTitle["genres"])):
+			if FormattedTitle["genres"][GenreIndex]["id"] == None:
+				FormattedTitle["genres"][GenreIndex]["id"] = 0
+
+		# Проставление ID в тегах.
+		for GenreIndex in range(0, len(FormattedTitle["tags"])):
+			if FormattedTitle["tags"][GenreIndex]["id"] == None:
+				FormattedTitle["tags"][GenreIndex]["id"] = 0
+
+		#---> Проверка пустых значений.
+		#==========================================================================================#
+
+		if FormattedTitle["desc"] == None:
+			FormattedTitle["desc"] = str()
+
+		if FormattedTitle["issue_year"] == None:
+			FormattedTitle["issue_year"] = 0
+
+		return FormattedTitle
+
 	# Конвертер: DMP-V1 > RN-V1.
 	def __DMP1_to_RN1(self):
 		# Перечисление типов тайтла.
@@ -254,6 +453,55 @@ class Formatter:
 		Statuses = ["ANNOUNCED", "ONGOING", "ABANDONED", "COMPLETED", "ANOTHER"]
 		# Буфер обработки возвращаемой структуры.
 		FormattedTitle = dict()
+
+		#---> Вложенные функции.
+		#==========================================================================================#
+
+		# Определяет тип тайтла.
+		def __IdentifyTitleType(self, TypeDetermination) -> str:
+			# Тип тайтла.
+			Type = None
+
+			# Перебор типов тайтла.
+			if type(TypeDetermination) is dict and "name" in TypeDetermination.keys():
+				if TypeDetermination["name"] in ["Манга"]:
+					Type = "MANGA"
+				elif TypeDetermination["name"] in ["Манхва"]:
+					Type = "MANHWA"
+				elif TypeDetermination["name"] in ["Маньхуа"]:
+					Type = "MANHUA"
+				elif TypeDetermination["name"] in ["Западный комикс"]:
+					Type = "WESTERN_COMIC"
+				elif TypeDetermination["name"] in ["Рукомикс", "Руманга"]:
+					Type = "RUS_COMIC"
+				elif TypeDetermination["name"] in ["Индонезийский комикс"]:
+					Type = "INDONESIAN_COMIC"
+				elif TypeDetermination["name"] in ["OEL-манга"]:
+					Type = "OEL"
+				else:
+					Type = "ANOTHER"
+
+			else:
+				pass
+
+			return Type
+
+		# Определяет статус тайтла.
+		def __IdentifyTitleStatus(self, TitleStatusDetermination) -> str:
+			# Тип тайтла.
+			Status = None
+
+			# Перебор типов тайтла.
+			if type(TitleStatusDetermination) is dict and "name" in TitleStatusDetermination.keys():
+				if TitleStatusDetermination["name"] in ["Анонс"]:
+					Status = "ANNOUNCED"
+				elif TitleStatusDetermination["name"] in ["Закончен"]:
+					Status = "COMPLETED"
+
+			else:
+				pass
+
+			return Status
 
 		#---> Генерация структуры.
 		#==========================================================================================#
@@ -452,52 +700,6 @@ class Formatter:
 	# >>>>> МЕТОДЫ <<<<< #
 	#==========================================================================================#
 
-	# Определяет тип тайтла.
-	def __IdentifyTitleType(self, TypeDetermination) -> str:
-		# Тип тайтла.
-		Type = None
-
-		# Перебор типов тайтла.
-		if type(TypeDetermination) is dict and "name" in TypeDetermination.keys():
-			if TypeDetermination["name"] in ["Манга"]:
-				Type = "MANGA"
-			elif TypeDetermination["name"] in ["Манхва"]:
-				Type = "MANHWA"
-			elif TypeDetermination["name"] in ["Маньхуа"]:
-				Type = "MANHUA"
-			elif TypeDetermination["name"] in ["Западный комикс"]:
-				Type = "WESTERN_COMIC"
-			elif TypeDetermination["name"] in ["Рукомикс", "Руманга"]:
-				Type = "RUS_COMIC"
-			elif TypeDetermination["name"] in ["Индонезийский комикс"]:
-				Type = "INDONESIAN_COMIC"
-			elif TypeDetermination["name"] in ["OEL-манга"]:
-				Type = "OEL"
-			else:
-				Type = "ANOTHER"
-
-		else:
-			pass
-
-		return Type
-
-	# Определяет статус тайтла.
-	def __IdentifyTitleStatus(self, TitleStatusDetermination) -> str:
-		# Тип тайтла.
-		Status = None
-
-		# Перебор типов тайтла.
-		if type(TitleStatusDetermination) is dict and "name" in TitleStatusDetermination.keys():
-			if TitleStatusDetermination["name"] in ["Анонс"]:
-				Status = "ANNOUNCED"
-			elif TitleStatusDetermination["name"] in ["Закончен"]:
-				Status = "COMPLETED"
-
-		else:
-			pass
-
-		return Status
-
 	# Конструктор: задаёт описательную структуру тайтла.
 	def __init__(self, Settings: dict, Title: dict, Format: str = None):
 
@@ -575,10 +777,10 @@ class Formatter:
 				if Format == "htcrn-v1":
 					raise UnableToConvert(self.__OriginalFormat, Format)
 
-				# Выброс исключения: не существует подходящего конвертера.
+				# Запуск конвертера: DMP-V1 > HTMP-V1.
 				if Format == "htmp-v1":
-					raise UnableToConvert(self.__OriginalFormat, Format)
-
+					FormattedTitle = self.__DMP1_to_HTMP1()
+					
 				# Выброс исключения: не существует подходящего конвертера.
 				if Format == "rn-v1":
 					FormattedTitle = self.__DMP1_to_RN1()
@@ -603,3 +805,7 @@ class Formatter:
 					FormattedTitle = self.__OriginalTitle
 
 		return FormattedTitle
+
+	# Возвращает автоматически определённый формат.
+	def GetFormat(self) -> str:
+		return self.__OriginalFormat;

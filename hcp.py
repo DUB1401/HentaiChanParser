@@ -68,8 +68,6 @@ Settings = {
 	"auto-branches-merging": False,
 	"covers-directory": "",
 	"titles-directory": "",
-	"retry-tries": 3,
-	"retry-delay": 15,
 	"debug": False
 }
 
