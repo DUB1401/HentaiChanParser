@@ -30,12 +30,14 @@
 	"ru-name": "Название манги",
 	"en-name": "Manga name",
 	"another-names": "漫画名 / Mangamei",
-	"type": null,
-	"age-rating": 18,
-	"publication-year": null,
-	"status": null,
+	"author": "Manga's author",
+	"series": "Manga's series",
 	"description": "Первый абзац описания.\nВторой абзац описания.",
+	"publication-year": null,
+	"type": null,
+	"status": null,
 	"is-licensed": false,
+	"age-rating": 18,
 	"genres": [
 		{
 			"id": null,

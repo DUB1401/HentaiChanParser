@@ -1,11 +1,14 @@
 #!/usr/bin/python
 
+from Source.ConsoleArgumentsChecker import ConsoleArgumentsChecker
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from Source.Functions import SecondsToTimeString
 from Source.TitleParser import TitleParser
+from Source.Formatter import Formatter
 from Source.DUBLIB import Shutdown
+from Source.Updater import Updater
 from selenium import webdriver
 from Source.DUBLIB import Cls
 
@@ -66,6 +69,8 @@ Settings = {
 	"sizing-images": False,
 	"use-id-instead-slug": False,
 	"auto-branches-merging": False,
+	"check-updates-period": 2,
+	"genres": dict(),
 	"covers-directory": "",
 	"titles-directory": "",
 	"debug": False
@@ -75,7 +80,7 @@ Settings = {
 if os.path.exists("Settings.json"):
 
 	# Открытие файла настроек.
-	with open("Settings.json") as FileRead:
+	with open("Settings.json", encoding = "utf-8") as FileRead:
 		# Чтение настроек.
 		Settings = json.load(FileRead)
 		# Запись в лог сообщения об успешном чтении файла настроек.
@@ -112,35 +117,16 @@ if os.path.exists("Settings.json"):
 			logging.info("Automatic merging of branches: OFF.")
 
 #==========================================================================================#
-# >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
-#==========================================================================================#
-
-# Экземпляр веб-драйвера Google Chrome.
-Browser = None
-# Опции веб-драйвера.
-ChromeOptions = Options()
-# Установка опций.
-ChromeOptions.add_argument("--no-sandbox")
-ChromeOptions.add_argument("--disable-dev-shm-usage")
-ChromeOptions.add_experimental_option("excludeSwitches", ["enable-logging"])
-
-# При отключённом режиме отладки скрыть окно браузера.
-if Settings["debug"] is False:
-	ChromeOptions.add_argument("--headless=new")
-
-try:
-	# Инициализация браузера.
-	Browser = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = ChromeOptions)
-	# Установка размера окна браузера на FullHD для корректной работы сайтов.
-	Browser.set_window_size(1920, 1080)
-
-except FileNotFoundError:
-	logging.critical("Unable to locate webdriver! Try to remove \".wdm\" folder in script directory.")
-
-#==========================================================================================#
 # >>>>> ОБРАБОТКА СПЕЦИАЛЬНЫХ ФЛАГОВ <<<<< #
 #==========================================================================================#
 
+# Инициализация обработчика консольных аргументов.
+CAC = ConsoleArgumentsChecker(sys.argv)
+# Установка обрабатываемых команд.
+CAC.SetCommand("convert", 4, Flags = ["-auto", "-s"])
+CAC.SetCommand("getcov", 2, Flags = ["-f", "-s"])
+CAC.SetCommand("parce", 2, Flags = ["-f", "-s"])
+CAC.SetCommand("update", 2, Keys = ["from="], Flags = ["-local", "-s"])
 # Активна ли опция выключения компьютера по завершении работы парсера.
 IsShutdowAfterEnd = False
 # Сообщение для внутренних функций: выключение ПК.
@@ -161,7 +147,7 @@ if "-f" in sys.argv:
 
 else:
 	# Запись в лог сообщения об отключённом режиме перезаписи.
-	logging.info("Force mode: OFF")
+	logging.info("Force mode: OFF.")
 	# Установка сообщения для внутренних функций.
 	InFuncMessage_ForceMode = "Force mode: OFF\n"
 
@@ -175,35 +161,189 @@ if "-s" in sys.argv:
 	InFuncMessage_Shutdown = "Computer will be turned off after the parser is finished!\n"
 
 #==========================================================================================#
-# >>>>> ОБРАБОТКА ОСНОВНЫХ КОММАНД <<<<< #
+# >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
 #==========================================================================================#
 
-# Двухкомпонентные команды: getcov, parce.
-if len(sys.argv) >= 3:
+# Экземпляр веб-драйвера Google Chrome.
+Browser = None
 
+# Если потребуется браузер.
+if "parce" in sys.argv or "update" in sys.argv:
+	# Опции веб-драйвера.
+	ChromeOptions = Options()
+	# Установка опций.
+	ChromeOptions.add_argument("--no-sandbox")
+	ChromeOptions.add_argument("--disable-dev-shm-usage")
+	ChromeOptions.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+	# При отключённом режиме отладки скрыть окно браузера.
+	if Settings["debug"] is False:
+		ChromeOptions.add_argument("--headless=new")
+
+	try:
+		# Инициализация браузера.
+		Browser = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = ChromeOptions)
+		# Установка размера окна браузера на FullHD для корректной работы сайтов.
+		Browser.set_window_size(1920, 1080)
+
+	except FileNotFoundError:
+		logging.critical("Unable to locate webdriver! Try to remove \".wdm\" folder in script directory.")
+
+#==========================================================================================#
+# >>>>> ОБРАБОТКА КОММАНД <<<<< #
+#==========================================================================================#
+
+# Конвертирование описательных файлов в указанный формат.
+if CAC.CheckCommand() == "convert":
+	# Запись в лог сообщения: конвертирование.
+	logging.info("====== Converting ======")
+	# Структура тайтла.
+	Title = None
+		
+	# Добавление расширения к файлу в случае отсутствия такового.
+	if ".json" not in sys.argv[2]:
+		sys.argv[2] += ".json"
+
+	# Чтение тайтла.
+	with open(Settings["titles-directory"] + sys.argv[2], encoding = "utf-8") as FileRead:
+		# Декодирование файла.
+		Title = json.load(FileRead)
+		# Исходный формат.
+		SourceFormat = None
+
+		# Определение исходного формата.
+		if sys.argv[3] == "-auto":
+			SourceFormat = Title["format"]
+		else:
+			SourceFormat = sys.argv[3]
+
+		# Создание объекта форматирования.
+		FormatterObject = Formatter(Settings, Title, Format = SourceFormat)
+		# Конвертирование структуры тайтла.
+		Title = FormatterObject.Convert(sys.argv[4])
+
+	# Сохранение переформатированного описательного файла.
+	with open(Settings["titles-directory"] + sys.argv[2], "w", encoding = "utf-8") as FileWrite:
+		json.dump(Title, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
+
+# Загрузка обложки.
+if CAC.CheckCommand() == "getcov":
+	# Запись в лог сообщения: заголовок парсинга.
+	logging.info("====== Parcing ======")
 	# Парсинг тайтла.
-	if sys.argv[1] == "parce":
+	LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
+	# Сохранение локальных файлов тайтла.
+	LocalTitle.DownloadCovers()
+
+# Парсинг тайтла.
+if CAC.CheckCommand() == "parce":
+	# Запись в лог сообщения: заголовок парсинга.
+	logging.info("====== Parcing ======")
+	# Парсинг тайтла.
+	LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
+	# Загружает обложку тайтла.
+	LocalTitle.DownloadCover()
+	# Сохранение локальных файлов тайтла.
+	LocalTitle.Save()
+
+# Получение обновлений.
+if CAC.CheckCommand() == "update":
+	# Запись в лог сообщения: заголовок обновления.
+	logging.info("====== Updating ======")
+
+	# Обновить все локальные файлы.
+	if "-local" in sys.argv:
+		# Получение списка файлов в директории.
+		TitlesList = os.listdir(Settings["titles-directory"])
+		# Фильтрация только файлов формата JSON.
+		TitlesList = list(filter(lambda x: x.endswith(".json"), TitlesList))
+		# Алиас стартового тайтла.
+		FromTitle = CAC.GetKeyValue("from")
+		# Индекс обрабатываемого тайтла.
+		CurrentTitleIndex = 0
+		# Алиасы тайтлов.
+		TitlesSlugs = list()
+			
+		# Чтение всех алиасов из локальных файлов.
+		for File in TitlesList:
+			# Открытие локального описательного файла JSON.
+			with open(Settings["titles-directory"] + File, encoding = "utf-8") as FileRead:
+				# JSON файл тайтла.
+				LocalTitle = json.load(FileRead)
+
+				# Помещение алиаса в список из формата DMP-V1.
+				if LocalTitle["format"] == "dmp-v1":
+					TitlesSlugs.append(LocalTitle["slug"])
+
+				# Помещение алиаса в список из формата HCMP-V1.
+				if LocalTitle["format"] == "hcmp-v1":
+					TitlesSlugs.append(str(LocalTitle["id"]) + "-" + LocalTitle["slug"])
+
+		# Запись в лог сообщения: количество доступных для обновления тайтлов.
+		logging.info("Local titles to update: " + str(len(TitlesList)) + ".")
+
+		# Старт с указанного тайтла.
+		if FromTitle is not None:
+			# Запись в лог сообщения: стартовый тайтл обновления.
+			logging.info("Updates starts from title with slug: \"" + FromTitle + "\".")
+			# Буферный список тайтлов.
+			BuferTitleSlugs = list()
+			# Состояние: записывать ли тайтлы.
+			IsWriteSlugs = False
+				
+			# Перебор тайтлов.
+			for Slug in TitlesSlugs:
+					
+				# Если обнаружен стартовый тайтл, то включить запись тайтлов в новый список обновлений.
+				if Slug == FromTitle:
+					IsWriteSlugs = True
+						
+				# Добавить алиас в список обновляемых тайтлов.
+				if IsWriteSlugs is True:
+					BuferTitleSlugs.append(Slug)
+
+			# Перезапись списка обновляемых тайтлов.
+			TitlesSlugs = BuferTitleSlugs
+				
 		# Запись в лог сообщения: заголовок парсинга.
 		logging.info("====== Parcing ======")
-		# Парсинг тайтла.
-		LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
-		# Загружает обложку тайтла.
-		LocalTitle.DownloadCover()
-		# Сохранение локальных файлов тайтла.
-		LocalTitle.Save()
 
-	# Загрузка обложки.
-	elif sys.argv[1] == "getcov":
-		# Запись в лог сообщения: заголовок парсинга.
+		# Парсинг обновлённых тайтлов.
+		for Slug in TitlesSlugs:
+			# Инкремент текущего индекса.
+			CurrentTitleIndex += 1
+			# Очистка терминала.
+			Cls()
+			# Вывод в терминал прогресса.
+			print("Updating titles: " + str(len(TitlesList) - len(TitlesSlugs) + CurrentTitleIndex) + " / " + str(len(TitlesList)))
+			# Генерация сообщения.
+			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(len(TitlesList) - len(TitlesSlugs) + CurrentTitleIndex) + " / " + str(len(TitlesList)) + "\n"
+			# Парсинг тайтла.
+			LocalTitle = TitleParser(Settings, Browser, Slug.replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
+			# Сохранение локальных файлов тайтла.
+			LocalTitle.Save()
+
+	# Обновить изменённые на сервере за последнее время тайтлы.
+	else:
+		# Инициализация проверки обновлений.
+		UpdateChecker = Updater(Settings, Browser)
+		# Получение списка обновлённых тайтлов.
+		UpdatedTitlesList = UpdateChecker.GetUpdatesList()
+		# Индекс обрабатываемого тайтла.
+		CurrentTitleIndex = 0
+		# Запись в лог сообщения: заголовог парсинга.
 		logging.info("====== Parcing ======")
-		# Парсинг тайтла.
-		LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
-		# Сохранение локальных файлов тайтла.
-		LocalTitle.DownloadCovers()
 
-# Обработка исключения: недостаточно аргументов.
-elif len(sys.argv) == 1:
-	logging.critical("Not enough arguments.")
+		# Парсинг обновлённых тайтлов.
+		for Slug in UpdatedTitlesList:
+			# Инкремент текущего индекса.
+			CurrentTitleIndex += 1
+			# Генерация сообщения.
+			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(CurrentTitleIndex) + " / " + str(len(UpdatedTitlesList)) + "\n"
+			# Парсинг тайтла.
+			LocalTitle = TitleParser(Settings, Browser, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
+			# Сохранение локальных файлов тайтла.
+			LocalTitle.Save()
 
 #==========================================================================================#
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #

@@ -90,6 +90,51 @@ class TitleParser:
 
 		return SearchableSlug
 
+	# Форматирует указанные настройками теги в жанры.
+	def __FindGenres(self):
+		# Удаляемые теги.
+		TagsToDeleting = list()
+		
+		# Проход по всем тегам и названиям жанров.
+		for TagIndex in range(0, len(self.__Title["tags"])):
+			for GenreName in list(self.__Settings["genres"].keys()):
+
+				# Если название тега совпадает с название жанра.
+				if self.__Title["tags"][TagIndex]["name"] == GenreName:
+					# Запись тега для последующего удаления.
+					TagsToDeleting.append(self.__Title["tags"][TagIndex])
+					
+					# Если тег не нужно переименовать в жанр.
+					if self.__Settings["genres"][GenreName] == None:
+						self.__Title["genres"].append(self.__Title["tags"][TagIndex])
+
+					# Если тег нужно переименовать в жанр.
+					else:
+						self.__Title["genres"].append({ "id": self.__Title["tags"][TagIndex]["id"], "name": self.__Settings["genres"][GenreName] })
+
+		# Удаление ненужных тегов.
+		for Tag in TagsToDeleting:
+			self.__Title["tags"].remove(Tag)
+
+	# Возвращает автора.
+	def __GetAuthor(self, Soup: BeautifulSoup):
+		# Никнейм автора.
+		Author = None
+		# Поиск блока информации о главе.
+		InfoBlock = Soup.find("div", {"id": "info_wrap"})
+		# Парсинг HTML кода блока информации о главе.
+		Soup = BeautifulSoup(str(InfoBlock), "lxml")
+		# Поиск ссылки на автора.
+		AuthorBlock = Soup.find_all("a")[2]
+		# Получение автора.
+		Author = AuthorBlock.get_text()
+
+		# Проверка на отсутствие автора.
+		if Author == "Unknown":
+			Author = None
+
+		return Author
+
 	# Возвращает структуру главы.
 	def __GetChapter(self, ChapterSlug: str) -> dict:
 		# Переход на страницу главы.
@@ -456,13 +501,10 @@ class TitleParser:
 
 		return CoversList
 
-	# Возвращает структуру жанров и тегов в формате DMP-V1.
-	def __GetGenresAndTags(self, PageHTML: str) -> dict:
-		# Структура жанров и тегов.
-		GenresAndTags = {
-			"tags": list(),
-			"genres": list()
-			}
+	# Возвращает список тегов в формате DMP-V1.
+	def __GetTags(self, PageHTML: str) -> list:
+		# Список тегов.
+		Tags = list()
 		# Парсинг HTML кода тела страницы.
 		Soup = BeautifulSoup(PageHTML, "lxml")
 		# Поиск всех HTML элементов тегов.
@@ -478,9 +520,9 @@ class TitleParser:
 			# Запись в буфер названия, очищенного от знаков навигации.
 			Bufer["name"] = Tag.get_text().replace("\n", "").replace("+-", "")
 			# Добавление буфера в общую структуру.
-			GenresAndTags["tags"].append(Bufer)
+			Tags.append(Bufer)
 		
-		return GenresAndTags
+		return Tags
 
 	# Заполняет информацию о тайтле.
 	def __GetTitleData(self):
@@ -501,7 +543,7 @@ class TitleParser:
 		# Описание тайтла.
 		Description = None
 		# Получение структур жанров и тегов.
-		GenresAndTags = self.__GetGenresAndTags(PageHTML)
+		Tags = self.__GetTags(PageHTML)
 
 		# Проверка наличия описания.
 		if DescriptionHTML != None:
@@ -527,14 +569,19 @@ class TitleParser:
 		self.__Title["ru-name"] = ParcedTitleName["ru-name"]
 		self.__Title["en-name"] = ParcedTitleName["en-name"]
 		self.__Title["another-names"] = ParcedTitleName["another-names"]
-		self.__Title["type"]
-		self.__Title["age-rating"] = 18
-		self.__Title["publication-year"]
-		self.__Title["status"]
+		self.__Title["author"] = self.__GetAuthor(Soup)
+		self.__Title["series"] = self.__GetSeries(Soup) 
 		self.__Title["description"] = Description
+		self.__Title["publication-year"]
+		self.__Title["type"]
+		self.__Title["status"]
 		self.__Title["is-licensed"] = False
-		self.__Title["genres"] = GenresAndTags["genres"]
-		self.__Title["tags"] = GenresAndTags["tags"]
+		self.__Title["age-rating"] = 18
+		self.__Title["genres"] = list()
+		self.__Title["tags"] = Tags
+
+		# Форматирование указанных настройками тегов в жанры.
+		self.__FindGenres()
 
 		# Запись в лог сообщения: получено описание тайтла.
 		logging.info("Title: \"" + self.__Slug + "\". Request title description... Done.")
@@ -572,12 +619,37 @@ class TitleParser:
 
 		return PagesCount
 
+	# Возвращает серию.
+	def __GetSeries(self, Soup: BeautifulSoup):
+		# Название серии.
+		Series = None
+		# Поиск блока информации о главе.
+		InfoBlock = Soup.find("div", {"id": "info_wrap"})
+		# Парсинг HTML кода блока информации о главе.
+		Soup = BeautifulSoup(str(InfoBlock), "lxml")
+		# Поиск ссылки на серию.
+		AuthorBlock = Soup.find_all("a")[1]
+		# Получение серии.
+		Series = AuthorBlock.get_text()
+
+		# Проверка на отсутствие серии.
+		if Series == "Оригинальные работы":
+			Series = None
+
+		return Series
+
 	# Выполняет слияние ветвей локального файла и полученных с сервера.
 	def __MergeBranches(self, LocalFilename: str):
 		# Список локальных глав.
 		LocalChaptersList = list()
-		# Запись в лог сообщения: найден локальный описательный файл тайтла.
-		logging.info("Title: \"" + self.__Slug + "\". Local JSON already exists. Trying to merge...")
+		
+		# Если включён режим перезаписи.
+		if self.__ForceMode == True:
+			# Запись в лог сообщения: найден локальный описательный файл тайтла.
+			logging.info("Title: \"" + self.__Slug + "\". Local JSON already exists. Will be overwritten...")
+		else:
+			# Запись в лог сообщения: найден локальный описательный файл тайтла.
+			logging.info("Title: \"" + self.__Slug + "\". Local JSON already exists. Trying to merge...")
 
 		# Открытие локального описательного файла JSON.
 		with open(self.__Settings["titles-directory"] + LocalFilename + ".json", encoding = "utf-8") as FileRead:
@@ -592,9 +664,16 @@ class TitleParser:
 				FormatterObject = Formatter(self.__Settings, LocalTitle)
 
 				# Если формат локального файла нестандартный.
-				if FormatterObject.GetFormat() == "htmp-v1":
+				if FormatterObject.GetFormat() == "hcmp-v1":
 					# Получение списка глав.
 					LocalChaptersList = LocalTitle["chapters"]
+
+				# Если формат локального файла стандартный.
+				else:
+
+					# Получение списка глав из всех ветвей.
+					for BranchID in LocalTitle["chapters"].keys():
+						LocalChaptersList += LocalTitle["chapters"][BranchID]
 
 			except json.decoder.JSONDecodeError:
 				# Запись в лог ошибки: не удалось прочитать существующий файл.
@@ -713,7 +792,7 @@ class TitleParser:
 						EnglishWordsCount += 1
 				
 				# Если больше половины слов английские, то считать часть названия английской.
-				if EnglishWordsCount >= int(len(Words) / 2):
+				if EnglishWordsCount >= int(len(Words) / 3):
 					TitleNameStruct["en-name"] = Name
 					IsLocaled = True
 
@@ -750,12 +829,14 @@ class TitleParser:
 			"ru-name": None,
 			"en-name": None,
 			"another-names": None,
-			"type": None,
-			"age-rating": None,
-			"publication-year": None,
-			"status": None,
+			"author": None,
+			"series": None,
 			"description": None,
+			"publication-year": None,
+			"type": None,
+			"status": None,
 			"is-licensed": None,
+			"age-rating": None,
 			"genres": list(),
 			"tags": list(),
 			"branches": list(),
@@ -827,8 +908,8 @@ class TitleParser:
 				# Удалить файл обложки.
 				if os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
 					shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug) 
-				elif os.path.exists(self.__Settings["covers-directory"] + self.__ID + "/" + CoverFilename):
-					shutil.rmtree(self.__Settings["covers-directory"] + self.__ID) 
+				elif os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
+					shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID)) 
 
 			# Удаление папки для обложек с алиасом в названии, если используется ID.
 			if self.__Settings["use-id-instead-slug"] == True and os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):

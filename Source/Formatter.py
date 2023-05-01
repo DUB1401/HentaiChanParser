@@ -59,7 +59,7 @@ class Formatter:
 	#==========================================================================================#
 
 	# Список известных форматов.
-	__FormatsList = ["dmp-v1", "htcrn-v1", "htmp-v1", "rn-v1"]
+	__FormatsList = ["dmp-v1", "hcmp-v1", "htcrn-v1", "htmp-v1", "rn-v1"]
 	# Формат оригинальной структуры тайтла.
 	__OriginalFormat = None
 	# Оригинальная структура тайтла.
@@ -70,6 +70,146 @@ class Formatter:
 	#==========================================================================================#
 	# >>>>> КОНВЕРТЕРЫ <<<<< #
 	#==========================================================================================#
+
+	# Конвертер: DMP-V1 > HCMP-V1.
+	def __DMP1_to_HCMP1(self):
+		# Перечисление типов тайтла.
+		Types = ["MANGA", "MANHWA", "MANHUA", "WESTERN_COMIC", "RUS_COMIC", "INDONESIAN_COMIC", "ANOTHER"]
+		# Перечисление статусов тайтла.
+		Statuses = ["COMPLETED", "ACTIVE", "ABANDONED", "NOT_FOUND", "", "LICENSED"]
+		# Буфер обработки возвращаемой структуры.
+		FormattedTitle = dict()
+
+		# Перечисление названий жанров, обозначающих однополые отношения.
+		HomoGenres = ["яой", "сёдзё-ай", "сёнэн-ай", "юри"]
+
+		#---> Генерация структуры.
+		#==========================================================================================#
+		FormattedTitle["format"] = "hcmp-v1"
+		FormattedTitle["site"] = self.__OriginalTitle["site"]
+		FormattedTitle["id"] = self.__OriginalTitle["id"]
+		FormattedTitle["slug"] = self.__OriginalTitle["slug"].replace(str(self.__OriginalTitle["id"]) + "-", "")
+		FormattedTitle["originalLink"] = "https://hentaichan.live/manga/" + self.__OriginalTitle["slug"] + ".html"
+		FormattedTitle["fullTitle"] = None
+		FormattedTitle["rusTitle"] = self.__OriginalTitle["ru-name"]
+		FormattedTitle["engTitle"] = self.__OriginalTitle["en-name"]
+		FormattedTitle["alternativeTitle"] = self.__OriginalTitle["another-names"]
+		FormattedTitle["type"] = self.__OriginalTitle["type"]
+		FormattedTitle["status"] = self.__OriginalTitle["status"]
+		FormattedTitle["isHentai"] = True
+		FormattedTitle["isYaoi"] = False
+		FormattedTitle["img"] = dict()
+		FormattedTitle["series"] = list()
+		FormattedTitle["authors"] = list()
+		FormattedTitle["translators"] = list()
+		FormattedTitle["tags"] = self.__OriginalTitle["tags"]
+		FormattedTitle["genres"] = self.__OriginalTitle["genres"]
+		FormattedTitle["chapters"] = list()
+
+		#---> Внесение правок.
+		#==========================================================================================#
+
+		# Генерауия ключей обложек.
+		FormattedTitle["img"]["high"] = None
+		FormattedTitle["img"]["mid"] = None
+		FormattedTitle["img"]["low"] = None
+
+		# Конвертирование обложек.
+		for CoverIndex in range(0, len(self.__OriginalTitle["covers"])):
+			# Используемое наименование тайтла.
+			UsetTitleName = None
+
+			# Если используется ID для именования тайтла.
+			if self.__Settings["use-id-instead-slug"] == True:
+				UsetTitleName = str(self.__OriginalTitle["id"])
+			else:
+				UsetTitleName = self.__OriginalTitle["slug"]
+
+			if CoverIndex == 0:
+				FormattedTitle["img"]["high"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
+			if CoverIndex == 1:
+				FormattedTitle["img"]["mid"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
+			if CoverIndex == 2:
+				FormattedTitle["img"]["low"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
+
+		# Проверка наличия статуса.
+		if FormattedTitle["status"] == None:
+			FormattedTitle["status"] = "NOT_FOUND"
+
+		# Проверка наличия типа.
+		if FormattedTitle["type"] == None:
+			FormattedTitle["type"] = "MANGA"
+
+		# Определение наличия жанра яой.
+		for Genre in FormattedTitle["genres"]:
+			if Genre["name"].lower() == "яой":
+				FormattedTitle["isYaoi"] = True
+		
+		# Индекс обрабатываемой главы.
+		CurrentChapterIndex = 0
+
+		# Конвертирование глав.
+		for OriginalChapter in self.__OriginalTitle["chapters"][list(self.__OriginalTitle["chapters"].keys())[0]]:
+			# Буфер текущей главы.
+			CurrentChapter = dict()
+			# Перенос данных.
+			CurrentChapter["id"] = OriginalChapter["id"]
+			CurrentChapter["chapter"] = OriginalChapter["number"]
+			CurrentChapter["title"] = OriginalChapter["name"]
+			CurrentChapter["tom"] = OriginalChapter["volume"]
+			CurrentChapter["index"] = CurrentChapterIndex
+			CurrentChapter["slides"] = OriginalChapter["slides"]
+
+			# Проверка отсутствия тома.
+			if CurrentChapter["tom"] == None:
+				CurrentChapter["tom"] = 1
+
+			# Проверка отсутствия названия.
+			if CurrentChapter["title"] == None:
+				CurrentChapter["title"] = ""
+
+			# Удаление индексов из слайдов.
+			for SlideIndex in range(0, len(CurrentChapter["slides"])):
+				del CurrentChapter["slides"][SlideIndex]["index"]
+
+			# Если у главы нет номера, то присвоить ей номер равный индексу плюс один.
+			if CurrentChapter["chapter"] == None:
+				CurrentChapter["chapter"] = CurrentChapterIndex + 1
+
+			# Сохранение результата.
+			FormattedTitle["chapters"].append(CurrentChapter)
+			# Инкремент индекса главы.
+			CurrentChapterIndex += 1
+
+		# Обработка тегов.
+		for GenreIndex in range(0, len(FormattedTitle["tags"])):
+
+			# Если нет ID, то задать 0.
+			if FormattedTitle["tags"][GenreIndex]["id"] == None:
+				FormattedTitle["tags"][GenreIndex]["id"] = 0
+
+			# Перевести в верхний регистр первую букву названия.
+			FormattedTitle["tags"][GenreIndex]["name"] = FormattedTitle["tags"][GenreIndex]["name"].capitalize()
+
+		# Обработка жанров.
+		for GenreIndex in range(0, len(FormattedTitle["genres"])):
+
+			# Если нет ID, то задать 0.
+			if FormattedTitle["genres"][GenreIndex]["id"] == None:
+				FormattedTitle["genres"][GenreIndex]["id"] = 0
+
+			# Перевести в верхний регистр первую букву названия.
+			FormattedTitle["genres"][GenreIndex]["name"] = FormattedTitle["genres"][GenreIndex]["name"].capitalize()
+
+		# Установка автора.
+		if self.__OriginalTitle["author"] != None:
+			FormattedTitle["authors"].append({ "id": 0, "name": self.__OriginalTitle["author"] })
+
+		# Установка серии.
+		if self.__OriginalTitle["series"] != None:
+			FormattedTitle["series"].append({ "id": 0, "name": self.__OriginalTitle["series"] })
+
+		return FormattedTitle
 
 	# Конвертер: DMP-V1 > HTMP-V1.
 	def __DMP1_to_HTMP1(self):
@@ -137,16 +277,16 @@ class Formatter:
 			UsetTitleName = None
 
 			# Если используется ID для именования тайтла.
-			if self.__Settings["use-id-istead-slug"] == True:
-				UsetTitleName = self.__OriginalTitle["slug"]
-			else:
+			if self.__Settings["use-id-instead-slug"] == True:
 				UsetTitleName = str(self.__OriginalTitle["id"])
+			else:
+				UsetTitleName = self.__OriginalTitle["slug"]
 
-			if CoverIndex == 1:
+			if CoverIndex == 0:
 				FormattedTitle["img"]["high"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
-			if CoverIndex == 2:
+			if CoverIndex == 1:
 				FormattedTitle["img"]["mid"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
-			if CoverIndex == 3:
+			if CoverIndex == 2:
 				FormattedTitle["img"]["low"] = UsetTitleName + "/" + self.__OriginalTitle["covers"][CoverIndex]["filename"]
 
 		# Проверка наличия статуса.
@@ -258,15 +398,6 @@ class Formatter:
 		for GenreIndex in range(0, len(FormattedTitle["tags"])):
 			if FormattedTitle["tags"][GenreIndex]["id"] == None:
 				FormattedTitle["tags"][GenreIndex]["id"] = 0
-
-		#---> Проверка пустых значений.
-		#==========================================================================================#
-
-		if FormattedTitle["desc"] == None:
-			FormattedTitle["desc"] = str()
-
-		if FormattedTitle["issue_year"] == None:
-			FormattedTitle["issue_year"] = 0
 
 		return FormattedTitle
 
@@ -728,11 +859,38 @@ class Formatter:
 		# Поиск необходимого конвертера.
 		else:
 
+			# Конвертирование: HCMP-V1.
+			if self.__OriginalFormat == "hcmp-v1":
+
+				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "dmp-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
+
+				# Не конвертировать исходный формат.
+				if Format == "hcmp-v1":
+					FormattedTitle = self.__OriginalTitle
+
+				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "htcrn-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
+
+				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "htmp-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
+
+				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "rn-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
+
 			# Конвертирование: HTCRN-V1.
 			if self.__OriginalFormat == "htcrn-v1":
 
 				# Выброс исключения: не существует подходящего конвертера.
 				if Format == "dmp-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
+
+				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "hcmp-v1":
 					raise UnableToConvert(self.__OriginalFormat, Format)
 
 				# Не конвертировать исходный формат.
@@ -755,6 +913,10 @@ class Formatter:
 					raise UnableToConvert(self.__OriginalFormat, Format)
 
 				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "hcmp-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
+
+				# Выброс исключения: не существует подходящего конвертера.
 				if Format == "htcrn-v1":
 					FormattedTitle = self.__HTMP1_to_HTCRN1()
 
@@ -772,6 +934,10 @@ class Formatter:
 				# Не конвертировать исходный формат.
 				if Format == "dmp-v1":
 					FormattedTitle = self.__OriginalTitle
+
+				# Запуск конвертера: DMP-V1 > HCMP-V1.
+				if Format == "hcmp-v1":
+					FormattedTitle = self.__DMP1_to_HCMP1()
 
 				# Выброс исключения: не существует подходящего конвертера.
 				if Format == "htcrn-v1":
@@ -791,6 +957,10 @@ class Formatter:
 				# Запуск конвертера: RN-V1 > DMP-V1.
 				if Format == "dmp-v1":
 					FormattedTitle = self.__RN1_to_DMP1()
+
+				# Выброс исключения: не существует подходящего конвертера.
+				if Format == "hcmp-v1":
+					raise UnableToConvert(self.__OriginalFormat, Format)
 
 				# Выброс исключения: не существует подходящего конвертера.
 				if Format == "htcrn-v1":
