@@ -46,6 +46,8 @@ LogFilename = "Logs/" + str(CurrentDate)[:-7] + ".log"
 LogFilename = LogFilename.replace(':', '-')
 # Установка конфигнурации.
 logging.basicConfig(filename = LogFilename, encoding = "utf-8", level = logging.INFO)
+# Отключение части сообщений логов библиотеки requests.
+logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 #==========================================================================================#
 # >>>>> ЧТЕНИЕ НАСТРОЕК <<<<< #
@@ -253,8 +255,14 @@ if CAC.CheckCommand() == "update":
 
 	# Обновить все локальные файлы.
 	if "-local" in sys.argv:
-		# Получение списка файлов в директории.
-		TitlesList = os.listdir(Settings["titles-directory"])
+
+		try:
+			# Получение списка файлов в директории.
+			TitlesList = os.listdir(Settings["titles-directory"])
+
+		except FileNotFoundError:
+			TitlesList = list()
+
 		# Фильтрация только файлов формата JSON.
 		TitlesList = list(filter(lambda x: x.endswith(".json"), TitlesList))
 		# Алиас стартового тайтла.
@@ -320,6 +328,8 @@ if CAC.CheckCommand() == "update":
 			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(len(TitlesList) - len(TitlesSlugs) + CurrentTitleIndex) + " / " + str(len(TitlesList)) + "\n"
 			# Парсинг тайтла.
 			LocalTitle = TitleParser(Settings, Browser, Slug.replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
+			# Загрузка обложек.
+			LocalTitle.DownloadCover()
 			# Сохранение локальных файлов тайтла.
 			LocalTitle.Save()
 
@@ -342,6 +352,8 @@ if CAC.CheckCommand() == "update":
 			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(CurrentTitleIndex) + " / " + str(len(UpdatedTitlesList)) + "\n"
 			# Парсинг тайтла.
 			LocalTitle = TitleParser(Settings, Browser, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
+			# Загрузка обложек.
+			LocalTitle.DownloadCover()
 			# Сохранение локальных файлов тайтла.
 			LocalTitle.Save()
 

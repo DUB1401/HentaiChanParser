@@ -1,4 +1,7 @@
 from selenium import webdriver
+from threading import Timer
+
+import logging
 
 class BrowserNavigator:
 
@@ -8,6 +11,8 @@ class BrowserNavigator:
 
 	# Глобальные настройки.
 	__Settings = dict()
+	# Состояние: загружена ли страница.
+	__IsLoaded = None
 	# Экземпляр браузера.
 	__Browser = None
 
@@ -15,6 +20,16 @@ class BrowserNavigator:
 	# >>>>> МЕТОДЫ <<<<< #
 	#==========================================================================================#
 	
+	# Останавливает загрузку страницы.
+	def __StopLoading(self):
+
+		# Если страница не загружена, то остановить загрузку.
+		if self.__IsLoaded == False:
+			self.__Browser.execute_script("window.stop();")
+
+		# Запись в лог ошибки: загрузка страницы прервана.
+		logging.debug("Page loading timed out. Stopped.")
+
 	# Конструктор: задаёт глобальные настройки и экземпляр браузера.
 	def __init__(self, Settings: dict, Browser: webdriver.Chrome):
 
@@ -31,9 +46,17 @@ class BrowserNavigator:
 		return BodyHTML
 
 	# Выполняет переход на указанную страницу.
-	def LoadPage(self, URL: str):
+	def LoadPage(self, URL: str, Timeout: int = 0):
 		# Состояние: выполняются ли условия перехода по URL.
 		LoadCondition = True
+		# Таймер ожидания загрузки.
+		StopTimer = Timer(Timeout, self.__StopLoading)
+
+		# Установка состояния загрузки.
+		if Timeout == 0:
+			self.__IsLoaded = None
+		else:
+			self.__IsLoaded = False
 
 		# Проверка условия перехода: браузер находится на той же странице.
 		if self.__Browser.current_url == URL:
@@ -43,6 +66,14 @@ class BrowserNavigator:
 		if self.__Browser.current_url == URL.replace("?offset=0", ""):
 			LoadCondition = False
 
-		# Перейти на страницу если все условия выполнены.
+		# Если все условия выполнены.
 		if LoadCondition == True:
+
+			# Если установлен тайм-аут, то запустить таймер остановки загрузки страницы.
+			if Timeout > 0:
+				StopTimer.start()
+
+			# Переход на страницу.
 			self.__Browser.get(URL)
+			# Остановка таймера.
+			StopTimer.cancel()

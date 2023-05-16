@@ -202,8 +202,8 @@ class TitleParser:
 
 	# Возвращает номер главы.
 	def __GetChapterNumber(self, ChapterName: str) -> str:
-		# Номер главы.
-		ChapterNumber = None
+		# Список возможных номеров главы.
+		ChapterNumber = list()
 		# Список вариаций написания главы.
 		ChapterVariations = ["Глава", "глава", "Часть", "часть"]
 		# Список ругулярных выражений для поиска номера главы.
@@ -216,24 +216,33 @@ class TitleParser:
 
 			# Если буфер валиден, то сохранить значение.
 			if Bufer != None:
-				ChapterNumber = Bufer.group(0)
+				ChapterNumber.append(Bufer.group(0))
 
 		# Удаление вариантов написания главы.
-		if ChapterNumber != None:
-			for ChapterVariation in ChapterVariations:
-				ChapterNumber = ChapterNumber.replace(ChapterVariation, "").strip()
+		if len(ChapterNumber) != 0:
+			for NumberIndex in range(0, len(ChapterNumber)):
+				for ChapterVariation in ChapterVariations:
+					ChapterNumber[NumberIndex] = ChapterNumber[NumberIndex].replace(ChapterVariation, "").strip()
 
-			try:
+				try:
 
-				# Попытка преобразовать значение в числовое.
-				if '.' in ChapterNumber:
-					float(ChapterNumber)
-				else:
-					int(ChapterNumber)
+					# Попытка преобразовать значение в числовое.
+					if '.' in ChapterNumber[NumberIndex]:
+						float(ChapterNumber[NumberIndex])
+					else:
+						int(ChapterNumber[NumberIndex])
 
-			except ValueError:
-				# Обнуление названия главы.
-				ChapterNumber = None
+				except ValueError:
+					# Удаление номера главы из списка.
+					ChapterNumber.remove(ChapterNumber[NumberIndex])
+
+		# Обнуление номера главы в случае неудачного обнаружения.
+		if len(ChapterNumber) == 0:
+			ChapterNumber = None
+
+		# Определение наибольшего из возможных номеров главы (исправляет проблему с двумя и более разными номерами главы).
+		else:
+			ChapterNumber = str(max(ChapterNumber))
 
 		return ChapterNumber
 
@@ -364,7 +373,7 @@ class TitleParser:
 		# Для каждого слайда составить структуру.
 		for SlideIndex in range(1, SlidesCount + 1):
 			# Переход на страницу слайда.
-			self.__Navigator.LoadPage("https://hentaichan.live/online/" + ChapterSlug + ".html?page=" + str(SlideIndex))
+			self.__Navigator.LoadPage("https://hentaichan.live/online/" + ChapterSlug + ".html?page=" + str(SlideIndex), Timeout = 30)
 			# HTML код тела страницы после полной загрузки.
 			BodyHTML = self.__Navigator.GetBodyHTML()
 			# Парсинг HTML кода страницы.
@@ -489,12 +498,13 @@ class TitleParser:
 		# Если обложка есть, определить её URL и название.
 		if "src" in CoverHTML.attrs.keys():
 
-			# Если у обложки есть ссылка на изображение.
+			# Если у обложки есть источник.
 			if str(CoverHTML["src"]) != "":
 				Cover["link"] = str(CoverHTML["src"])
 				Cover["filename"] = Cover["link"].split('/')[-1]
 				CoversList.append(Cover)
-			
+
+			# Если у обложки нет источника.
 			else:
 				# Запись в лог предупреждения: обложка отсутствует.
 				logging.warning("Title: \"" + self.__Slug + "\". Cover missing.")
@@ -963,6 +973,14 @@ class TitleParser:
 	def Save(self):
 		# Используемое имя тайтла: ID или алиас.
 		UsedTitleName = None
+
+		# Создание директории обложек, если таковая отсутствует.
+		if os.path.exists(self.__Settings["covers-directory"]) == False:
+			os.makedirs(self.__Settings["covers-directory"])
+
+		# Создание директории тайтлов, если таковая отсутствует.
+		if os.path.exists(self.__Settings["titles-directory"]) == False:
+			os.makedirs(self.__Settings["titles-directory"])
 
 		# Установка используемого имени тайтла.
 		if self.__Settings["use-id-instead-slug"] == False:
