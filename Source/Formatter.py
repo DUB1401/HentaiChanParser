@@ -154,7 +154,8 @@ class Formatter:
 			CurrentChapter = dict()
 			# Перенос данных.
 			CurrentChapter["id"] = OriginalChapter["id"]
-			CurrentChapter["chapter"] = OriginalChapter["number"]
+			CurrentChapter["chapter"] = CurrentChapterIndex + 1
+			CurrentChapter["originalChapter"] = OriginalChapter["number"]
 			CurrentChapter["title"] = OriginalChapter["name"]
 			CurrentChapter["tom"] = OriginalChapter["volume"]
 			CurrentChapter["index"] = CurrentChapterIndex
@@ -172,9 +173,9 @@ class Formatter:
 			for SlideIndex in range(0, len(CurrentChapter["slides"])):
 				del CurrentChapter["slides"][SlideIndex]["index"]
 
-			# Если у главы нет номера, то присвоить ей номер равный индексу плюс один.
-			if CurrentChapter["chapter"] == None:
-				CurrentChapter["chapter"] = CurrentChapterIndex + 1
+			# Если у главы нет оригинального номера, то присвоить ей оригинальный номер равный индексу плюс один.
+			if CurrentChapter["originalChapter"] == None:
+				CurrentChapter["originalChapter"] = CurrentChapterIndex + 1
 
 			# Сохранение результата.
 			FormattedTitle["chapters"].append(CurrentChapter)

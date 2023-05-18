@@ -291,9 +291,9 @@ if CAC.CheckCommand() == "update":
 		logging.info("Local titles to update: " + str(len(TitlesList)) + ".")
 
 		# Старт с указанного тайтла.
-		if FromTitle is not None:
+		if FromTitle != None:
 			# Запись в лог сообщения: стартовый тайтл обновления.
-			logging.info("Updates starts from title with slug: \"" + FromTitle + "\".")
+			logging.info("Updating starts from title with slug: \"" + FromTitle + "\".")
 			# Буферный список тайтлов.
 			BuferTitleSlugs = list()
 			# Состояние: записывать ли тайтлы.
@@ -341,6 +341,34 @@ if CAC.CheckCommand() == "update":
 		UpdatedTitlesList = UpdateChecker.GetUpdatesList()
 		# Индекс обрабатываемого тайтла.
 		CurrentTitleIndex = 0
+		# Алиас стартового тайтла.
+		FromTitle = CAC.GetKeyValue("from")
+		# Запись в лог сообщения: количество найденных за указанный период обновлений.
+		logging.info("Titles found for update period: " + str(len(UpdatedTitlesList)) + ".")
+
+		# Старт с указанного тайтла.
+		if FromTitle != None:
+			# Запись в лог сообщения: стартовый тайтл обновления.
+			logging.info("Updating starts from title with slug: \"" + FromTitle + "\".")
+			# Буферный список тайтлов.
+			BuferTitleSlugs = list()
+			# Состояние: записывать ли тайтлы.
+			IsWriteSlugs = False
+				
+			# Перебор тайтлов.
+			for Slug in UpdatedTitlesList:
+					
+				# Если обнаружен стартовый тайтл, то включить запись тайтлов в новый список обновлений.
+				if Slug == FromTitle:
+					IsWriteSlugs = True
+						
+				# Добавить алиас в список обновляемых тайтлов.
+				if IsWriteSlugs is True:
+					BuferTitleSlugs.append(Slug)
+
+			# Перезапись списка обновляемых тайтлов.
+			UpdatedTitlesList = BuferTitleSlugs
+
 		# Запись в лог сообщения: заголовог парсинга.
 		logging.info("====== Parcing ======")
 

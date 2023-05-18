@@ -242,7 +242,7 @@ class TitleParser:
 
 		# Определение наибольшего из возможных номеров главы (исправляет проблему с двумя и более разными номерами главы).
 		else:
-			ChapterNumber = str(max(ChapterNumber))
+			ChapterNumber = str(max(ChapterNumber)).strip('.')
 
 		return ChapterNumber
 
