@@ -62,7 +62,7 @@ class TitleParser:
 				# Очистка консоли.
 				Cls()
 				# Вывод в терминал: прогресс дополнения.
-				print(self.__Message + "Amending chapters: " + str(AmendedChaptersCount + 1) + " / " + str(TotalChaptersCount - self.__MergedChaptersCount))
+				print(self.__Message + "Amending chapters: " + str(AmendedChaptersCount + 1) + " / " + str(TotalChaptersCount))
 
 				# Если в главе нет данных о слайдах.
 				if self.__Title["chapters"][BranchID][ChapterIndex]["slides"] == list():
@@ -74,6 +74,33 @@ class TitleParser:
 					AmendedChaptersCount += 1
 					# Запись в лог сообщения: глава дополнена.
 					logging.info("Title: \"" + self.__Slug + "\". Chapter " + str(self.__Title["chapters"][BranchID][ChapterIndex]["id"]) + " amended.")
+
+		# Если включено определение размеров, для каждого слайда, каждой главы в каждой ветви попытаться получить разрешение.
+		if self.__Settings["sizing-images"] == True:
+			for BranchID in BranchesID:
+				for ChapterIndex in range(0, len(self.__Title["chapters"][BranchID])):
+					for SlideIndex in range(0, len(self.__Title["chapters"][BranchID][ChapterIndex]["slides"])):
+						# Ссылка на слайд.
+						SlideLink = self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["link"]
+						# Скрипт определения разрешения слайда.
+						Script = f'''
+							var Done = arguments[0];
+							const Slide = new Image();
+							Slide.onload = function() {{
+							  Done(Slide.width + "/" + Slide.height);
+							}}
+							Slide.src = "{SlideLink}";
+						'''
+						# Получение разрешения слайда.
+						SlideResolution = self.__Browser.execute_async_script(Script)
+
+						# Проверка успешности получения ширины слайда.
+						if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
+							self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["width"] = int(SlideResolution.split('/')[0])
+
+						# Проверка успешности получения разрешения.
+						if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
+							self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
 
 		# Запись в лог сообщения: количество дополненных глав.
 		logging.info("Title: \"" + self.__Slug + "\". Amended chapters: " + str(AmendedChaptersCount) + ".")
@@ -503,6 +530,30 @@ class TitleParser:
 				Cover["link"] = str(CoverHTML["src"])
 				Cover["filename"] = Cover["link"].split('/')[-1]
 				CoversList.append(Cover)
+
+				# Если включено определение размеров, попытаться получить разрешение обложки.
+				if self.__Settings["sizing-images"] == True:
+					# Ссылка на обложку.
+					CoverLink = Cover["link"]
+					# Скрипт определения разрешения слайда.
+					Script = f'''
+						var Done = arguments[0];
+						const Slide = new Image();
+						Slide.onload = function() {{
+							Done(Slide.width + "/" + Slide.height);
+						}}
+						Slide.src = "{CoverLink}";
+					'''
+					# Получение разрешения обложки.
+					CoverResolution = self.__Browser.execute_async_script(Script)
+
+					# Проверка успешности получения ширины обложки.
+					if CoverResolution.split('/')[0].isdigit() == True and int(CoverResolution.split('/')[0]) > 0:
+						Cover["width"] = int(CoverResolution.split('/')[0])
+
+					# Проверка успешности получения высоты обложки.
+					if CoverResolution.split('/')[1].isdigit() == True and int(CoverResolution.split('/')[1]) > 0:
+						Cover["height"] = int(CoverResolution.split('/')[1])
 
 			# Если у обложки нет источника.
 			else:
