@@ -102,8 +102,8 @@ class Formatter:
 		FormattedTitle["series"] = list()
 		FormattedTitle["authors"] = list()
 		FormattedTitle["translators"] = list()
-		FormattedTitle["tags"] = self.__OriginalTitle["tags"]
-		FormattedTitle["genres"] = self.__OriginalTitle["genres"]
+		FormattedTitle["tags"] = list()
+		FormattedTitle["genres"] = list()
 		FormattedTitle["chapters"] = list()
 
 		#---> Внесение правок.
@@ -182,25 +182,13 @@ class Formatter:
 			# Инкремент индекса главы.
 			CurrentChapterIndex += 1
 
-		# Обработка тегов.
-		for GenreIndex in range(0, len(FormattedTitle["tags"])):
+		# Конвертирование тегов.
+		for TagIndex in range(0, len(self.__OriginalTitle["tags"])):
+			FormattedTitle["tags"].append({"id": 0, "name": self.__OriginalTitle["tags"][TagIndex].capitalize()})
 
-			# Если нет ID, то задать 0.
-			if FormattedTitle["tags"][GenreIndex]["id"] == None:
-				FormattedTitle["tags"][GenreIndex]["id"] = 0
-
-			# Перевести в верхний регистр первую букву названия.
-			FormattedTitle["tags"][GenreIndex]["name"] = FormattedTitle["tags"][GenreIndex]["name"].capitalize()
-
-		# Обработка жанров.
-		for GenreIndex in range(0, len(FormattedTitle["genres"])):
-
-			# Если нет ID, то задать 0.
-			if FormattedTitle["genres"][GenreIndex]["id"] == None:
-				FormattedTitle["genres"][GenreIndex]["id"] = 0
-
-			# Перевести в верхний регистр первую букву названия.
-			FormattedTitle["genres"][GenreIndex]["name"] = FormattedTitle["genres"][GenreIndex]["name"].capitalize()
+		# Конвертирование жанров.
+		for GenreIndex in range(0, len(self.__OriginalTitle["genres"])):
+			FormattedTitle["genres"].append({"id": 0, "name": self.__OriginalTitle["genres"][GenreIndex].capitalize()})
 
 		# Установка автора.
 		if self.__OriginalTitle["author"] != None:
@@ -245,8 +233,8 @@ class Formatter:
 		FormattedTitle["total_votes"] = 0
 		FormattedTitle["total_views"] = 0
 		FormattedTitle["type"] = self.__OriginalTitle["type"]
-		FormattedTitle["genres"] = self.__OriginalTitle["genres"]
-		FormattedTitle["tags"] = self.__OriginalTitle["tags"]
+		FormattedTitle["genres"] = list()
+		FormattedTitle["tags"] = list()
 		FormattedTitle["bookmark_type"] = None
 		FormattedTitle["branches"] = list()
 		FormattedTitle["count_chapters"] = self.__OriginalTitle["branches"][0]["chapters-count"]
@@ -311,6 +299,14 @@ class Formatter:
 			CurrentBranch["publishers"] = list()
 			# Сохранение результата.
 			FormattedTitle["branches"].append(CurrentBranch)
+
+		# Конвертирование тегов.
+		for TagIndex in range(0, len(self.__OriginalTitle["tags"])):
+			FormattedTitle["tags"].append({"id": 0, "name": self.__OriginalTitle["tags"][TagIndex].capitalize()})
+
+		# Конвертирование жанров.
+		for GenreIndex in range(0, len(self.__OriginalTitle["genres"])):
+			FormattedTitle["genres"].append({"id": 0, "name": self.__OriginalTitle["genres"][GenreIndex].capitalize()})
 
 		# Определение наличия жанра однополых отношений.
 		for Genre in FormattedTitle["genres"]:
@@ -559,6 +555,14 @@ class Formatter:
 				# Помещение главы в ветвь.
 				FormattedTitle["chapters"][BranchID].append(BuferChapter)
 
+		# Конвертирование тегов.
+		for TagIndex in range(0, len(self.__OriginalTitle["tags"])):
+			FormattedTitle["tags"].append({"id": 0, "name": self.__OriginalTitle["tags"][TagIndex].capitalize()})
+
+		# Конвертирование жанров.
+		for GenreIndex in range(0, len(self.__OriginalTitle["genres"])):
+			FormattedTitle["genres"].append({"id": 0, "name": self.__OriginalTitle["genres"][GenreIndex].capitalize()})
+
 		return FormattedTitle
 
 	# Конвертер: HTMP-V1 > HTCRN-V1.
@@ -654,8 +658,8 @@ class Formatter:
 		FormattedTitle["status"] = self.__IdentifyTitleStatus(self.__OriginalTitle["status"])
 		FormattedTitle["description"] = self.__OriginalTitle["description"]
 		FormattedTitle["is-licensed"] = self.__OriginalTitle["is_licensed"]
-		FormattedTitle["genres"] = self.__OriginalTitle["genres"]
-		FormattedTitle["tags"] = self.__OriginalTitle["categories"]
+		FormattedTitle["genres"] = list()
+		FormattedTitle["tags"] = list()
 		FormattedTitle["branches"] = list()
 		FormattedTitle["chapters"] = dict()
 
@@ -744,6 +748,14 @@ class Formatter:
 			# Получение размеров.
 			if CoverImage is not None:
 				FormattedTitle["covers"][CoverIndex]["width"], FormattedTitle["covers"][CoverIndex]["height"] = CoverImage.size
+
+		# Конвертирование тегов.
+		for TagIndex in range(0, len(self.__OriginalTitle["tags"])):
+			FormattedTitle["tags"].append(self.__OriginalTitle["tags"][TagIndex]["name"].lower())
+
+		# Конвертирование жанров.
+		for GenreIndex in range(0, len(self.__OriginalTitle["genres"])):
+			FormattedTitle["genres"].append(self.__OriginalTitle["genres"][GenreIndex]["name"].lower())
 
 		# Сортировка глав по возрастанию.
 		for BranchID in FormattedTitle["chapters"].keys():

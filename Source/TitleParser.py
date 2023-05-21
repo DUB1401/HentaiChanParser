@@ -127,7 +127,7 @@ class TitleParser:
 			for GenreName in list(self.__Settings["genres"].keys()):
 
 				# Если название тега совпадает с название жанра.
-				if self.__Title["tags"][TagIndex]["name"] == GenreName:
+				if self.__Title["tags"][TagIndex] == GenreName:
 					# Запись тега для последующего удаления.
 					TagsToDeleting.append(self.__Title["tags"][TagIndex])
 					
@@ -137,7 +137,7 @@ class TitleParser:
 
 					# Если тег нужно переименовать в жанр.
 					else:
-						self.__Title["genres"].append({ "id": self.__Title["tags"][TagIndex]["id"], "name": self.__Settings["genres"][GenreName] })
+						self.__Title["genres"].append(self.__Settings["genres"][GenreName])
 
 		# Удаление ненужных тегов.
 		for Tag in TagsToDeleting:
@@ -571,17 +571,9 @@ class TitleParser:
 		# Поиск всех HTML элементов тегов.
 		AllTags = Soup.find_all("li", {"class": "sidetag"})
 
-		# Для каждого тега сформировать структуру согласно формату DMP-V1.
+		# Для названия каждого тега удалить лишние символы.
 		for Tag in AllTags:
-			# Буферная структура.
-			Bufer = {
-				"id": None,
-				"name": None
-				}
-			# Запись в буфер названия, очищенного от знаков навигации.
-			Bufer["name"] = Tag.get_text().replace("\n", "").replace("+-", "")
-			# Добавление буфера в общую структуру.
-			Tags.append(Bufer)
+			Tags.append(Tag.get_text().replace("\n", "").replace("+-", ""))
 		
 		return Tags
 

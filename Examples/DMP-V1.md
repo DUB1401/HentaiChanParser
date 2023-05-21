@@ -39,16 +39,10 @@
 	"is-licensed": false,
 	"age-rating": 18,
 	"genres": [
-		{
-			"id": null,
-			"name": "Название жанра"
-		}
+		"название жанра"
 	],
 	"tags": [
-		{
-			"id": null,
-			"name": "Название тега"
-		}
+		"название тега"
 	],
 	"branches": [
 		{
