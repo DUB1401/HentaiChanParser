@@ -86,6 +86,15 @@ def RenameDictKey(Dictionary: dict, OldKey: str, NewKey: str) -> dict:
 
 	return Result
 
+# Удаляет из строки подряд идущие повторяющиеся символы.
+def RemoveRecurringCharacters(String: str, Character: str) -> str:
+
+	# Пока в строке находятся повторы указанного символа, удалять их.
+	while Character + Character in String:
+		String = String.replace(Character + Character, Character)
+
+	return String
+
 # Удаляет теги HTML из строки.
 def RemoveHTML(TextHTML: str) -> str:
 	# Регулярное выражение фильтрации тегов HTML.

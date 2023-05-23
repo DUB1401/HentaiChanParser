@@ -37,11 +37,11 @@ class Updater:
 	# Возвращает дату публикации главы.
 	def __GetPublicationDate(self, Block: str) -> str:
 		# Парсинг HTML блока главы.
-		Soup = BeautifulSoup(str(Block), "lxml")
+		Soup = BeautifulSoup(str(Block), "html.parser")
 		# Поиск блока строки описания с датой.
 		RowBlock = Soup.find("div", {"class": "row4_right"})
 		# Парсинг блока строки описания с датой.
-		Soup = BeautifulSoup(str(RowBlock), "lxml")
+		Soup = BeautifulSoup(str(RowBlock), "html.parser")
 		# Поиск блока с датой.
 		DateBlock = Soup.find("b")
 		# Получение текстового варианта даты.
@@ -91,7 +91,7 @@ class Updater:
 			# HTML код тела страницы после полной загрузки.
 			BodyHTML = self.__Navigator.GetBodyHTML()
 			# Парсинг HTML кода страницы.
-			Soup = BeautifulSoup(BodyHTML, "lxml")
+			Soup = BeautifulSoup(BodyHTML, "html.parser")
 			# Поиск всех блоков глав.
 			ChaptersBlocks = Soup.find_all("div", {"class": "content_row"})
 			# Инкремент индекса страницы.
@@ -111,7 +111,7 @@ class Updater:
 		# Для каждого блока новой главы, соответствующего заданному периоду.
 		for Block in UpdatedChaptersBlocks:
 			# Парсинг блока главы.
-			Soup = BeautifulSoup(str(Block), "lxml")
+			Soup = BeautifulSoup(str(Block), "html.parser")
 			# Поиск ссылки на тайтл.
 			TitleLink = Soup.find("a", {"class": "title_link"})
 			# Получение алиаса.

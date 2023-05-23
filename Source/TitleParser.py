@@ -1,4 +1,5 @@
 from Source.BrowserNavigator import BrowserNavigator
+from Source.DUBLIB import RemoveRecurringCharacters
 from Source.DUBLIB import CheckForCyrillicPresence
 from Source.Formatter import Formatter
 from collections import Counter
@@ -150,7 +151,7 @@ class TitleParser:
 		# Поиск блока информации о главе.
 		InfoBlock = Soup.find("div", {"id": "info_wrap"})
 		# Парсинг HTML кода блока информации о главе.
-		Soup = BeautifulSoup(str(InfoBlock), "lxml")
+		Soup = BeautifulSoup(str(InfoBlock), "html.parser")
 		# Поиск ссылки на автора.
 		AuthorBlock = Soup.find_all("a")[2]
 		# Получение автора.
@@ -169,13 +170,13 @@ class TitleParser:
 		# HTML код тела страницы после полной загрузки.
 		BodyHTML = self.__Navigator.GetBodyHTML()
 		# Парсинг HTML кода страницы.
-		Soup = BeautifulSoup(BodyHTML, "lxml")
+		Soup = BeautifulSoup(BodyHTML, "html.parser")
 		# Поиск блока переводчика.
 		TranslatorBlock = Soup.find("span", {"class": "translation"})
 		# Поиск блока названия главы.
 		NameBlock = Soup.find("a", {"class": "title_top_a"})
 		# Парсинг HTML кода блока переводчика.
-		Soup = BeautifulSoup(str(TranslatorBlock), "lxml")
+		Soup = BeautifulSoup(str(TranslatorBlock), "html.parser")
 		# Поиск ссылки на переводчика.
 		TranslatorBlock = Soup.find("a")
 		# Структура главы.
@@ -404,7 +405,7 @@ class TitleParser:
 			# HTML код тела страницы после полной загрузки.
 			BodyHTML = self.__Navigator.GetBodyHTML()
 			# Парсинг HTML кода страницы.
-			Soup = BeautifulSoup(BodyHTML, "lxml")
+			Soup = BeautifulSoup(BodyHTML, "html.parser")
 			# Поиск блока со слайдом.
 			SlideBlock = Soup.find("img", {"style": "max-width:1000px;background-color:white;"})
 			# Буферная структура слайда.
@@ -447,11 +448,11 @@ class TitleParser:
 		# HTML код тела страницы после полной загрузки.
 		BodyHTML = self.__Navigator.GetBodyHTML()
 		# Парсинг HTML кода страницы.
-		Soup = BeautifulSoup(BodyHTML, "lxml")
+		Soup = BeautifulSoup(BodyHTML, "html.parser")
 		# Поиск блока со слайдами.
 		SlidesBlock = Soup.find("div", {"id": "thumbs"})
 		# Парсинг блока со слайдами.
-		Soup = BeautifulSoup(str(SlidesBlock), "lxml")
+		Soup = BeautifulSoup(str(SlidesBlock), "html.parser")
 		# Подсчёт количества слайдов в главе по количеству ссылок на них.
 		SlidesCount = len(Soup.find_all("a"))
 		
@@ -485,18 +486,18 @@ class TitleParser:
 				# HTML код тела страницы после полной загрузки.
 				PageHTML = self.__Navigator.GetBodyHTML()
 				# Парсинг HTML кода тела страницы.
-				Soup = BeautifulSoup(PageHTML, "lxml")
+				Soup = BeautifulSoup(PageHTML, "html.parser")
 				# Поиск блоков с информацией о главах.
 				ChaptersBlocks = Soup.find_all("div", {"class": "related_info"})
 				
 				# Для каждой главы получить алиас.
 				for Chapter in ChaptersBlocks:
 					# Парсинг HTML блока с информацией о главе.
-					SmallSoup = BeautifulSoup(str(Chapter), "lxml")
+					SmallSoup = BeautifulSoup(str(Chapter), "html.parser")
 					# Поиск заголовка главы.
 					Header = SmallSoup.find("h2")
 					# Парсинг заголовка названия главы.
-					SmallSoup = BeautifulSoup(str(Header), "lxml")
+					SmallSoup = BeautifulSoup(str(Header), "html.parser")
 					# Поиск ссылки на главу.
 					CapterLink = SmallSoup.find("a")
 
@@ -511,7 +512,7 @@ class TitleParser:
 		# Контейнер обложек.
 		CoversList = list()
 		# Парсинг HTML кода тела страницы.
-		Soup = BeautifulSoup(PageHTML, "lxml")
+		Soup = BeautifulSoup(PageHTML, "html.parser")
 		# Поиск HTML элемента обложки.
 		CoverHTML = Soup.find("img", {"id": "cover"})
 		# Описательная структура обложки.
@@ -567,7 +568,7 @@ class TitleParser:
 		# Список тегов.
 		Tags = list()
 		# Парсинг HTML кода тела страницы.
-		Soup = BeautifulSoup(PageHTML, "lxml")
+		Soup = BeautifulSoup(PageHTML, "html.parser")
 		# Поиск всех HTML элементов тегов.
 		AllTags = Soup.find_all("li", {"class": "sidetag"})
 
@@ -586,7 +587,7 @@ class TitleParser:
 		# HTML код тела страницы после полной загрузки.
 		PageHTML = self.__Navigator.GetBodyHTML()
 		# Парсинг HTML кода тела страницы.
-		Soup = BeautifulSoup(PageHTML, "lxml")
+		Soup = BeautifulSoup(PageHTML, "html.parser")
 		# Поиск HTML элемента названия тайтла.
 		TitleName = Soup.find("a", {"class": "title_top_a"}).get_text()
 		# Структура названия главы: русское, английское и другие.
@@ -606,7 +607,7 @@ class TitleParser:
 				Block.decompose()
 
 			# Замена тегов на спецсимволы новой строки.
-			DescriptionHTML = BeautifulSoup(str(DescriptionHTML).replace("<br/>", "\n"), "lxml")
+			DescriptionHTML = BeautifulSoup(str(DescriptionHTML).replace("<br/>", "\n"), "html.parser")
 			# Получение оставшегося текста без краевых спецсимволов и пробелов.
 			Description = DescriptionHTML.get_text().strip("\n \t")
 
@@ -624,7 +625,7 @@ class TitleParser:
 		self.__Title["another-names"] = ParcedTitleName["another-names"]
 		self.__Title["author"] = self.__GetAuthor(Soup)
 		self.__Title["series"] = self.__GetSeries(Soup) 
-		self.__Title["description"] = Description
+		self.__Title["description"] = RemoveRecurringCharacters(Description, '\n')
 		self.__Title["publication-year"]
 		self.__Title["type"]
 		self.__Title["status"]
@@ -660,11 +661,11 @@ class TitleParser:
 		# HTML код тела страницы после полной загрузки.
 		PageHTML = self.__Navigator.GetBodyHTML()
 		# Парсинг HTML кода тела страницы.
-		Soup = BeautifulSoup(PageHTML, "lxml")
+		Soup = BeautifulSoup(PageHTML, "html.parser")
 		# Поиск HTML блока навигации по страницам.
 		Pages = Soup.find_all("div", {"id" : "pagination_related"})
 		# Парсинг HTML блока навигации.
-		SmallSoup = BeautifulSoup(str(Pages), "lxml")
+		SmallSoup = BeautifulSoup(str(Pages), "html.parser")
 		# Поиск HTML ссылок на страницы.
 		PagesLinks = SmallSoup.find_all("a")
 		# Количество страниц (добавляется 1 для компенсации отсутствия в списке первой страницы).
@@ -679,7 +680,7 @@ class TitleParser:
 		# Поиск блока информации о главе.
 		InfoBlock = Soup.find("div", {"id": "info_wrap"})
 		# Парсинг HTML кода блока информации о главе.
-		Soup = BeautifulSoup(str(InfoBlock), "lxml")
+		Soup = BeautifulSoup(str(InfoBlock), "html.parser")
 		# Поиск ссылки на серию.
 		AuthorBlock = Soup.find_all("a")[1]
 		# Получение серии.

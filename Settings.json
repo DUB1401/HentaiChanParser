@@ -3,24 +3,9 @@
 	"sizing-images": false,
 	"use-id-instead-slug": false,
 	"auto-branches-merging": false,
+	"check-updates-period": 2,
 	"covers-directory": "",
 	"titles-directory": "",
-	"genres": {
-		"gender bender": "гендерная интрига",
-		"арт": null,
-		"в школе": "школьная жизнь",
-		"гаремник": "гарем",
-		"девочки волшебницы": "махо-сёдзё",
-		"драма": null,
-		"романтика": null,
-		"сверхъестественное": null,
-		"фантастика": null,
-		"фэнтези": null,
-		"хоррор": "ужасы",
-		"эччи": "этти",
-		"юмор": "комедия",
-		"юри": null,
-		"яой": null
-	},
+	"genres": {},
 	"debug": false
 }
