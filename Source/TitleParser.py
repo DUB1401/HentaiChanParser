@@ -774,7 +774,7 @@ class TitleParser:
 		TitleNameStruct = {
 			"ru-name": None,
 		    "en-name": None,
-		    "another-names": None
+		    "another-names": list()
 			}
 
 		# Если есть часть названия в скобочках.
@@ -852,17 +852,8 @@ class TitleParser:
 
 			# Обработка: транслитерированное название.
 			if IsLocaled == False:
-
-				# Преобразование пустого поля других названий.
-				if TitleNameStruct["another-names"] == None:
-					TitleNameStruct["another-names"] = str()
-
 				# Запись альтернативных названий через запятую.
-				TitleNameStruct["another-names"] += Name + " / "
-
-		# Очистка альтернативных названий от ненужных краевых символов.
-		if TitleNameStruct["another-names"] != None:
-			TitleNameStruct["another-names"] = TitleNameStruct["another-names"].strip(" / ")
+				TitleNameStruct["another-names"].append(Name)
 
 		return TitleNameStruct
 

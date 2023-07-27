@@ -93,7 +93,7 @@ class Formatter:
 		FormattedTitle["fullTitle"] = None
 		FormattedTitle["rusTitle"] = self.__OriginalTitle["ru-name"]
 		FormattedTitle["engTitle"] = self.__OriginalTitle["en-name"]
-		FormattedTitle["alternativeTitle"] = self.__OriginalTitle["another-names"]
+		FormattedTitle["alternativeTitle"] = " / ".join(self.__OriginalTitle["another-names"])
 		FormattedTitle["type"] = self.__OriginalTitle["type"]
 		FormattedTitle["status"] = self.__OriginalTitle["status"]
 		FormattedTitle["isHentai"] = True
@@ -220,7 +220,7 @@ class Formatter:
 		FormattedTitle["img"] = dict()
 		FormattedTitle["engTitle"] = self.__OriginalTitle["en-name"]
 		FormattedTitle["rusTitle"] = self.__OriginalTitle["ru-name"]
-		FormattedTitle["alternativeTitle"] = self.__OriginalTitle["another-names"]
+		FormattedTitle["alternativeTitle"] = " / ".join(self.__OriginalTitle["another-names"])
 		FormattedTitle["slug"] = self.__OriginalTitle["slug"]
 		FormattedTitle["desc"] = self.__OriginalTitle["description"]
 		FormattedTitle["issue_year"] = self.__OriginalTitle["publication-year"]
@@ -417,7 +417,7 @@ class Formatter:
 		FormattedTitle["img"] = dict()
 		FormattedTitle["en_name"] = self.__OriginalTitle["en-name"]
 		FormattedTitle["rus_name"] = self.__OriginalTitle["ru-name"]
-		FormattedTitle["another_name"] = self.__OriginalTitle["another-names"]
+		FormattedTitle["another_name"] = " / ".join(self.__OriginalTitle["another-names"])
 		FormattedTitle["dir"] = self.__OriginalTitle["slug"]
 		FormattedTitle["description"] = self.__OriginalTitle["description"]
 		FormattedTitle["issue_year"] = self.__OriginalTitle["publication-year"]
@@ -651,7 +651,7 @@ class Formatter:
 		FormattedTitle["covers"].append({"link": "https://remanga.org" + self.__OriginalTitle["img"]["low"], "filename": self.__OriginalTitle["img"]["low"].split('/')[-1], "width": None, "height": None})
 		FormattedTitle["ru-name"] = self.__OriginalTitle["rus_name"]
 		FormattedTitle["en-name"] = self.__OriginalTitle["en_name"]
-		FormattedTitle["another-names"] = self.__OriginalTitle["another_name"]
+		FormattedTitle["another-names"] = self.__OriginalTitle["another_name"].split(" / ")
 		FormattedTitle["type"] = self.__IdentifyTitleType(self.__OriginalTitle["type"])
 		FormattedTitle["age-rating"] = self.__OriginalTitle["age_limit"]
 		FormattedTitle["publication-year"] = self.__OriginalTitle["issue_year"]

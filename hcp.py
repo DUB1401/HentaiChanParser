@@ -30,10 +30,10 @@ if sys.version_info < PythonMinimalVersion:
 	sys.exit("Python %s.%s or later is required.\n" % PythonMinimalVersion)
 
 #==========================================================================================#
-# >>>>> ИНИЦИАЛИЗАЦИЯ ЛОГОВ <<<<< #
+# >>>>> ИНИЦИАЛИЗАЦИЯ ЛОГГИРОВАНИЯ <<<<< #
 #==========================================================================================#
 
-# Проверка наличия директории логов.
+# Если нет папки для логов, то создать.
 if os.path.isdir("Logs/") == False:
 	os.makedirs("Logs/")
 
@@ -78,7 +78,7 @@ Settings = {
 	"debug": False
 }
 
-# Проверка доступности файла.
+# Проверка доступности файла настроек.
 if os.path.exists("Settings.json"):
 
 	# Открытие файла настроек.
@@ -117,6 +117,12 @@ if os.path.exists("Settings.json"):
 			logging.info("Automatic merging of branches: ON.")
 		else:
 			logging.info("Automatic merging of branches: OFF.")
+
+else:
+	# Запись в лог ошибки: не найден файл настроек.
+	logging.error("Settings.json file not found.")
+	# Выбро исключения.
+	raise Exception("Settings.json file not found.")
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА СПЕЦИАЛЬНЫХ ФЛАГОВ <<<<< #

@@ -2,18 +2,23 @@
 **HentaiChan Parser** – это кроссплатформенный скрипт для получения данных с сайта [HentaiChan](https://hentaichan.live) в формате JSON. Он позволяет записать всю информацию о конкретной манге, а также её главах и содержании глав.
 
 ## Порядок установки и использования
-1. Установить Python версии не старше 3.9. При установке рекомендуется добавить в PATH.
-2. В среду исполнения установить следующие пакеты вручную или при помощи файла _requirements.txt_: [webdriver-manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
+1. Загрузить последний релиз. Распаковать.
+2. Установить Python версии не старше 3.9. Рекомендуется добавить в PATH.
+3. В среду исполнения установить следующие пакеты: [webdriver-manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
 ```
 pip install webdriver-manager
 pip install BeautifulSoup4
 pip install PyEnchant
 pip install Selenium
 ```
-3. Настроить скрипт путём редактирования _Settings.json_.
-4. Установить браузер [Google Chrome](https://www.google.com.iq/chrome/) в стандартную директорию на Windows, либо использовать _*.deb_ пакет на Linux.
-5. Открыть директорию со скриптом в терминале. Можно использовать метод `cd` и прописать путь к папке, либо запустить терминал из проводника.
-6. Ввести нужную команду и дождаться завершения.
+Либо установить сразу все пакеты при помощи следующей команды, выполненной из директории скрипта.
+```
+pip install -r requirements.txt
+```
+4. Настроить скрипт путём редактирования _Settings.json_.
+5. Установить браузер [Google Chrome](https://www.google.com.iq/chrome/) в стандартную директорию на Windows, либо использовать _*.deb_ или _*.rpm_ пакет на Linux.
+6. Открыть директорию со скриптом в терминале. Можно использовать метод `cd` и прописать путь к папке, либо запустить терминал из проводника.
+7. Ввести нужную команду и дождаться завершения.
 
 # Консольные команды
 ```
