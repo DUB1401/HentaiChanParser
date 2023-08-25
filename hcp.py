@@ -1,16 +1,15 @@
 #!/usr/bin/python
 
-from Source.ConsoleArgumentsChecker import ConsoleArgumentsChecker
+from dublib.Methods import Cls, Shutdown, WriteJSON, ReadJSON
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from Source.Functions import SecondsToTimeString
 from Source.TitleParser import TitleParser
 from Source.Formatter import Formatter
-from Source.DUBLIB import Shutdown
 from Source.Updater import Updater
+from dublib.Terminalyzer import *
 from selenium import webdriver
-from Source.DUBLIB import Cls
 
 import datetime
 import logging
@@ -24,7 +23,7 @@ import os
 #==========================================================================================#
 
 # Минимальная требуемая версия Python.
-PythonMinimalVersion = (3, 9)
+PythonMinimalVersion = (3, 10)
 # Проверка соответствия.
 if sys.version_info < PythonMinimalVersion:
 	sys.exit("Python %s.%s or later is required.\n" % PythonMinimalVersion)
@@ -34,8 +33,8 @@ if sys.version_info < PythonMinimalVersion:
 #==========================================================================================#
 
 # Если нет папки для логов, то создать.
-if os.path.isdir("Logs/") == False:
-	os.makedirs("Logs/")
+if os.path.isdir("Logs") == False:
+	os.makedirs("Logs")
 
 # Получение текущей даты.
 CurrentDate = datetime.datetime.now()
@@ -65,18 +64,6 @@ logging.info("Launch command: \"" + " ".join(sys.argv[1:len(sys.argv)]) + "\".")
 os.environ["WDM_LOCAL"] = "1"
 # Отключение логов WebDriver.
 os.environ["WDM_LOG"] = str(logging.NOTSET)
-# Глобальные настройки.
-Settings = {
-	"format": "dmp-v1",
-	"sizing-images": False,
-	"use-id-instead-slug": False,
-	"auto-branches-merging": False,
-	"check-updates-period": 2,
-	"genres": dict(),
-	"covers-directory": "",
-	"titles-directory": "",
-	"debug": False
-}
 
 # Проверка доступности файла настроек.
 if os.path.exists("Settings.json"):
@@ -119,22 +106,66 @@ if os.path.exists("Settings.json"):
 			logging.info("Automatic merging of branches: OFF.")
 
 else:
-	# Запись в лог ошибки: не найден файл настроек.
-	logging.error("Settings.json file not found.")
-	# Выбро исключения.
-	raise Exception("Settings.json file not found.")
+	# Запись в лог критической ошибки: не найден файл настроек.
+	logging.critical("Settings.json not found.")
+	# Выброс исключения.
+	raise Exception("Settings.json not found")
+
+#==========================================================================================#
+# >>>>> НАСТРОЙКА ОБРАБОТЧИКА КОМАНД <<<<< #
+#==========================================================================================#
+
+# Список описаний обрабатываемых команд.
+CommandsList = list()
+
+# Создание команды: convert.
+COM_convert = Command("convert")
+COM_convert.addArgument(ArgumentType.All, Important = True)
+COM_convert.addArgument(ArgumentType.All, Important = True, LayoutIndex = 1)
+COM_convert.addArgument(ArgumentType.All, Important = True)
+COM_convert.addFlagPosition(["auto"], Important = True, LayoutIndex = 1)
+COM_convert.addFlagPosition(["s"])
+CommandsList.append(COM_convert)
+
+# Создание команды: getcov.
+COM_getcov = Command("getcov")
+COM_getcov.addArgument(ArgumentType.All, Important = True)
+COM_getcov.addFlagPosition(["f"])
+COM_getcov.addFlagPosition(["s"])
+CommandsList.append(COM_getcov)
+
+# Создание команды: parce.
+COM_parce = Command("parce")
+COM_parce.addArgument(ArgumentType.All, Important = True)
+COM_parce.addFlagPosition(["f"])
+COM_parce.addFlagPosition(["s"])
+CommandsList.append(COM_parce)
+
+# Создание команды: update.
+COM_update = Command("update")
+COM_update.addArgument(ArgumentType.All, LayoutIndex = 1)
+COM_update.addFlagPosition(["local"], LayoutIndex = 1)
+COM_update.addFlagPosition(["f"])
+COM_update.addFlagPosition(["s"])
+COM_update.addKeyPosition(["from"], ArgumentType.All)
+CommandsList.append(COM_update)
+
+# Инициализация обработчика консольных аргументов.
+CAC = Terminalyzer()
+# Получение информации о проверке команд.
+CommandDataStruct = CAC.checkCommands(CommandsList)
+
+# Если не удалось определить команду.
+if CommandDataStruct == None:
+	# Запись в лог критической ошибки: неверная команда.
+	logging.critical("Unknown command.")
+	# Завершение работы скрипта с кодом ошибки.
+	exit(1)
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА СПЕЦИАЛЬНЫХ ФЛАГОВ <<<<< #
 #==========================================================================================#
 
-# Инициализация обработчика консольных аргументов.
-CAC = ConsoleArgumentsChecker(sys.argv)
-# Установка обрабатываемых команд.
-CAC.SetCommand("convert", 4, Flags = ["-auto", "-s"])
-CAC.SetCommand("getcov", 2, Flags = ["-f", "-s"])
-CAC.SetCommand("parce", 2, Flags = ["-f", "-s"])
-CAC.SetCommand("update", 2, Keys = ["from="], Flags = ["-local", "-s"])
 # Активна ли опция выключения компьютера по завершении работы парсера.
 IsShutdowAfterEnd = False
 # Сообщение для внутренних функций: выключение ПК.
@@ -145,7 +176,7 @@ IsForceModeActivated = False
 InFuncMessage_ForceMode = ""
 
 # Обработка флага: режим перезаписи.
-if "-f" in sys.argv:
+if "f" in CommandDataStruct.Flags and CommandDataStruct.Name not in ["convert", "manage"]:
 	# Включение режима перезаписи.
 	IsForceModeActivated = True
 	# Запись в лог сообщения: включён режим перезаписи.
@@ -160,10 +191,10 @@ else:
 	InFuncMessage_ForceMode = "Force mode: OFF\n"
 
 # Обработка флага: выключение ПК после завершения работы скрипта.
-if "-s" in sys.argv:
+if "s" in CommandDataStruct.Flags:
 	# Включение режима.
 	IsShutdowAfterEnd = True
-	# Запись в лог сообщения: ПК будет выключен после завершения работы.
+	# Запись в лог сообщения о том, что ПК будет выключен после завершения работы.
 	logging.info("Computer will be turned off after the parser is finished!")
 	# Установка сообщения для внутренних функций.
 	InFuncMessage_Shutdown = "Computer will be turned off after the parser is finished!\n"
@@ -176,12 +207,13 @@ if "-s" in sys.argv:
 Browser = None
 
 # Если потребуется браузер.
-if "parce" in sys.argv or "update" in sys.argv:
+if CommandDataStruct.Name in ["getcov", "parce", "update"]:
 	# Опции веб-драйвера.
 	ChromeOptions = Options()
 	# Установка опций.
 	ChromeOptions.add_argument("--no-sandbox")
 	ChromeOptions.add_argument("--disable-dev-shm-usage")
+	ChromeOptions.add_argument("--disable-gpu");
 	ChromeOptions.add_experimental_option("excludeSwitches", ["enable-logging"])
 
 	# При отключённом режиме отладки скрыть окно браузера.
@@ -195,72 +227,78 @@ if "parce" in sys.argv or "update" in sys.argv:
 		Browser.set_window_size(1920, 1080)
 
 	except FileNotFoundError:
+		# Запись в лог критической ошибки: неверный путь к вдрайверу.
 		logging.critical("Unable to locate webdriver! Try to remove \".wdm\" folder in script directory.")
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА КОММАНД <<<<< #
 #==========================================================================================#
 
-# Конвертирование описательных файлов в указанный формат.
-if CAC.CheckCommand() == "convert":
+# Обработка команды: convert.
+if "convert" == CommandDataStruct.Name:
 	# Запись в лог сообщения: конвертирование.
 	logging.info("====== Converting ======")
 	# Структура тайтла.
 	Title = None
-		
+	# Исходный формат.
+	SourceFormat = None
+	# Название конвертируемого файла.
+	Filename = CommandDataStruct.Arguments[0]
+	
 	# Добавление расширения к файлу в случае отсутствия такового.
-	if ".json" not in sys.argv[2]:
-		sys.argv[2] += ".json"
+	if ".json" not in Filename:
+		Filename += ".json"
 
 	# Чтение тайтла.
-	with open(Settings["titles-directory"] + sys.argv[2], encoding = "utf-8") as FileRead:
-		# Декодирование файла.
-		Title = json.load(FileRead)
-		# Исходный формат.
-		SourceFormat = None
+	Title = ReadJSON(Settings["titles-directory"] + Filename)
 
-		# Определение исходного формата.
-		if sys.argv[3] == "-auto":
-			SourceFormat = Title["format"]
-		else:
-			SourceFormat = sys.argv[3]
+	# Определение исходного формата.
+	if "auto" in CommandDataStruct.Flags:
+		SourceFormat = Title["format"]
+	else:
+		SourceFormat = CommandDataStruct.Arguments[1]
 
-		# Создание объекта форматирования.
-		FormatterObject = Formatter(Settings, Title, Format = SourceFormat)
-		# Конвертирование структуры тайтла.
-		Title = FormatterObject.Convert(sys.argv[4])
+	# Создание объекта форматирования.
+	FormatterObject = Formatter(Settings, Title, Format = SourceFormat)
+	# Конвертирование структуры тайтла.
+	Title = FormatterObject.convert(CommandDataStruct.Arguments[2])
 
 	# Сохранение переформатированного описательного файла.
-	with open(Settings["titles-directory"] + sys.argv[2], "w", encoding = "utf-8") as FileWrite:
-		json.dump(Title, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
+	WriteJSON(Settings["titles-directory"] + Filename, Title)
 
-# Загрузка обложки.
-if CAC.CheckCommand() == "getcov":
+# Обработка команды: getcov.
+if "getcov" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
 	# Парсинг тайтла.
-	LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
+	LocalTitle = TitleParser(Settings, Browser, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
 	# Сохранение локальных файлов тайтла.
-	LocalTitle.DownloadCovers()
+	LocalTitle.downloadCover()
 
-# Парсинг тайтла.
-if CAC.CheckCommand() == "parce":
+# Обработка команды: parce.
+if "parce" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
 	# Парсинг тайтла.
-	LocalTitle = TitleParser(Settings, Browser, sys.argv[2], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
+	LocalTitle = TitleParser(Settings, Browser, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
 	# Загружает обложку тайтла.
-	LocalTitle.DownloadCover()
+	LocalTitle.downloadCover()
 	# Сохранение локальных файлов тайтла.
-	LocalTitle.Save()
+	LocalTitle.save()
 
-# Получение обновлений.
-if CAC.CheckCommand() == "update":
+# Обработка команды: update.
+if "update" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок обновления.
 	logging.info("====== Updating ======")
+	# Алиас стартового тайтла.
+	FromTitle = None
+		
+	# Если указано, с какого тайтла начать.
+	if "from" in CommandDataStruct.Keys:
+		FromTitle = CommandDataStruct.Values["from"]
 
 	# Обновить все локальные файлы.
-	if "-local" in sys.argv:
+	if "local" in CommandDataStruct.Flags:
 
 		try:
 			# Получение списка файлов в директории.
@@ -271,8 +309,6 @@ if CAC.CheckCommand() == "update":
 
 		# Фильтрация только файлов формата JSON.
 		TitlesList = list(filter(lambda x: x.endswith(".json"), TitlesList))
-		# Алиас стартового тайтла.
-		FromTitle = CAC.GetKeyValue("from")
 		# Индекс обрабатываемого тайтла.
 		CurrentTitleIndex = 0
 		# Алиасы тайтлов.
@@ -347,8 +383,6 @@ if CAC.CheckCommand() == "update":
 		UpdatedTitlesList = UpdateChecker.GetUpdatesList()
 		# Индекс обрабатываемого тайтла.
 		CurrentTitleIndex = 0
-		# Алиас стартового тайтла.
-		FromTitle = CAC.GetKeyValue("from")
 		# Запись в лог сообщения: количество найденных за указанный период обновлений.
 		logging.info("Titles found for update period: " + str(len(UpdatedTitlesList)) + ".")
 

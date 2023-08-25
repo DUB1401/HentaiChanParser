@@ -1,4 +1,4 @@
-webdriver-manager
+webdriver_manager
 BeautifulSoup4
 PyEnchant
 Selenium

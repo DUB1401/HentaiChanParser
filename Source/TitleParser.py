@@ -1,11 +1,9 @@
+from dublib.Methods import CheckForCyrillicPresence, Cls, RemoveRecurringSubstrings
 from Source.BrowserNavigator import BrowserNavigator
-from Source.DUBLIB import RemoveRecurringCharacters
-from Source.DUBLIB import CheckForCyrillicPresence
 from Source.Formatter import Formatter
 from collections import Counter
 from selenium import webdriver
 from bs4 import BeautifulSoup
-from Source.DUBLIB import Cls
 
 import requests
 import enchant
@@ -16,35 +14,6 @@ import os
 import re
 
 class TitleParser:
-
-	#==========================================================================================#
-	# >>>>> СВОЙСТВА <<<<< #
-	#==========================================================================================#
-
-	# Количество выполненных слияний глав.
-	__MergedChaptersCount  = 0
-	# Список алиасов глав тайтла.
-	__ChaptersSlugs = list()
-	# Состояние: включена ли перезапись файлов.
-	__ForceMode = True
-	# Обработчик навигации экземпляра браузера.
-	__Navigator = None
-	# Глобальные настройки.
-	__Settings = dict()
-	# Экземпляр браузера.
-	__Browser = None
-	# Сообщение из внешнего обработчика.
-	__Message = ""
-	# Описательная структура тайтла.
-	__Title = None
-	# Алиас тайтла.
-	__Slug = None
-	# ID тайтла.
-	__ID = None
-	
-	#==========================================================================================#
-	# >>>>> МЕТОДЫ <<<<< #
-	#==========================================================================================#
 
 	# Дополняет главы данными о слайдах.
 	def __AmendChapters(self):
@@ -610,11 +579,12 @@ class TitleParser:
 			DescriptionHTML = BeautifulSoup(str(DescriptionHTML).replace("<br/>", "\n"), "html.parser")
 			# Получение оставшегося текста без краевых спецсимволов и пробелов.
 			Description = DescriptionHTML.get_text().strip("\n \t")
-
+			# Удаление повторяющихся символов новой строки.
+			RemoveRecurringSubstrings(Description, '\n')
 			# Если описание пустое, то обнулить его.
 			if Description == "":
 				Description = None
-
+		
 		# Заполнение полей описательной структуры.
 		self.__Title["site"] = "hentaichan.live"
 		self.__Title["id"] = self.__ID
@@ -624,13 +594,13 @@ class TitleParser:
 		self.__Title["en-name"] = ParcedTitleName["en-name"]
 		self.__Title["another-names"] = ParcedTitleName["another-names"]
 		self.__Title["author"] = self.__GetAuthor(Soup)
-		self.__Title["series"] = self.__GetSeries(Soup) 
-		self.__Title["description"] = RemoveRecurringCharacters(Description, '\n')
 		self.__Title["publication-year"]
+		self.__Title["age-rating"] = 18
+		self.__Title["description"] = Description
 		self.__Title["type"]
 		self.__Title["status"]
 		self.__Title["is-licensed"] = False
-		self.__Title["age-rating"] = 18
+		self.__Title["series"] = self.__GetSeries(Soup)
 		self.__Title["genres"] = list()
 		self.__Title["tags"] = Tags
 
@@ -676,7 +646,7 @@ class TitleParser:
 	# Возвращает серию.
 	def __GetSeries(self, Soup: BeautifulSoup):
 		# Название серии.
-		Series = None
+		Series = list()
 		# Поиск блока информации о главе.
 		InfoBlock = Soup.find("div", {"id": "info_wrap"})
 		# Парсинг HTML кода блока информации о главе.
@@ -684,11 +654,11 @@ class TitleParser:
 		# Поиск ссылки на серию.
 		AuthorBlock = Soup.find_all("a")[1]
 		# Получение серии.
-		Series = AuthorBlock.get_text()
+		SeriesName = AuthorBlock.get_text()
 
 		# Проверка на отсутствие серии.
-		if Series == "Оригинальные работы":
-			Series = None
+		if SeriesName != "Оригинальные работы":
+			Series.append(SeriesName)
 
 		return Series
 
@@ -718,7 +688,7 @@ class TitleParser:
 				FormatterObject = Formatter(self.__Settings, LocalTitle)
 
 				# Если формат локального файла нестандартный.
-				if FormatterObject.GetFormat() == "hcmp-v1":
+				if FormatterObject.getFormat() == "hcmp-v1":
 					# Получение списка глав.
 					LocalChaptersList = LocalTitle["chapters"]
 
@@ -860,11 +830,21 @@ class TitleParser:
 	# Конструктор: строит структуру описательного файла тайтла и проверяет наличие локальных данных.
 	def __init__(self, Settings: dict, Browser: webdriver.Chrome, Slug: str, ForceMode: bool = False, Message: str = "", Amending: bool = True):
 
-		#---> Генерация свойств.
+		#---> Генерация динамических свойств.
 		#==========================================================================================#
-		self.__Settings = Settings
-		self.__Navigator = BrowserNavigator(Settings, Browser)
+		# Количество выполненных слияний глав.
+		self.__MergedChaptersCount  = 0
+		# Список алиасов глав тайтла.
+		self.__ChaptersSlugs = list()
+		# Состояние: включена ли перезапись файлов.
+		self.__ForceMode = ForceMode
+		# Глобальные настройки.
+		self.__Settings = Settings.copy()
+		# Экземпляр браузера.
 		self.__Browser = Browser
+		# Обработчик навигации экземпляра браузера.
+		self.__Navigator = BrowserNavigator(Settings, Browser)
+		# Описательная структура тайтла.
 		self.__Title = {
 			"format": "dmp-v1",
 			"site": None,
@@ -875,21 +855,24 @@ class TitleParser:
 			"en-name": None,
 			"another-names": None,
 			"author": None,
-			"series": None,
-			"description": None,
 			"publication-year": None,
+			"age-rating": None,
+			"description": None,
 			"type": None,
 			"status": None,
 			"is-licensed": None,
-			"age-rating": None,
+			"series": list(),
 			"genres": list(),
 			"tags": list(),
 			"branches": list(),
 			"chapters": dict()
 		}
+		# Алиас тайтла.
 		self.__Slug = Slug
-		self.__ForceMode = ForceMode
+		# Сообщение из внешнего обработчика.
 		self.__Message = Message + "Current title: " + self.__Slug + "\n\n"
+		# ID тайтла.
+		self.__ID = None
 
 		#---> Получение данных о тайтле.
 		#==========================================================================================#
@@ -901,11 +884,11 @@ class TitleParser:
 		self.__ID = self.__GetChapterID(self.__Slug)
 		# Запись в лог сообщения: парсинг начат.
 		logging.info("Title: \"" + self.__Slug + "\". Parcing...")
-
+		# Получение описательных данных тайтла.
+		self.__GetTitleData()
+		
 		# Если включена полная обработка файла.
 		if Amending == True:
-			# Получение описательных данных тайтла.
-			self.__GetTitleData()
 			# Получение данных глав тайтла.
 			self.__GetChaptersData()
 
@@ -915,6 +898,7 @@ class TitleParser:
 				# Слияние с локальным описательным файлом.
 				if os.path.exists(self.__Settings["titles-directory"] + self.__Slug + ".json"):
 					self.__MergeBranches(self.__Slug)
+					
 				elif os.path.exists(self.__Settings["titles-directory"] + str(self.__ID) + ".json"):
 					self.__MergeBranches(str(self.__ID))
 
@@ -922,17 +906,22 @@ class TitleParser:
 			self.__AmendChapters()
 
 	# Загружает обложку тайтла.
-	def DownloadCover(self):
+	def downloadCover(self):
 		# Счётчик загруженных обложек.
 		DownloadedCoversCounter = 0
 		# Используемое имя тайтла: ID или алиас.
 		UsedTitleName = None
 		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
 		print(self.__Message, end = "")
+		
+		# Создание директории обложек, если таковая отсутствует.
+		if os.path.exists(self.__Settings["covers-directory"]) == False:
+			os.makedirs(self.__Settings["covers-directory"])
 
 		# Установка используемого имени тайтла.
 		if self.__Settings["use-id-instead-slug"] == False:
 			UsedTitleName = self.__Slug
+			
 		else:
 			UsedTitleName = str(self.__ID)
 
@@ -1005,13 +994,9 @@ class TitleParser:
 		logging.info("Title: \"" + self.__Slug + "\". Covers downloaded: " + str(DownloadedCoversCounter) + ".")
 
 	# Сохраняет локальный JSON файл.
-	def Save(self):
+	def save(self):
 		# Используемое имя тайтла: ID или алиас.
 		UsedTitleName = None
-
-		# Создание директории обложек, если таковая отсутствует.
-		if os.path.exists(self.__Settings["covers-directory"]) == False:
-			os.makedirs(self.__Settings["covers-directory"])
 
 		# Создание директории тайтлов, если таковая отсутствует.
 		if os.path.exists(self.__Settings["titles-directory"]) == False:
@@ -1025,7 +1010,7 @@ class TitleParser:
 
 		# Инициализация конвертера.
 		FormatterObject = Formatter(self.__Settings, self.__Title, "dmp-v1")
-		FormattedTitle = FormatterObject.Convert(self.__Settings["format"])
+		FormattedTitle = FormatterObject.convert(self.__Settings["format"])
 
 		# Сохранение локального файла JSON.
 		with open(self.__Settings["titles-directory"] + UsedTitleName + ".json", "w", encoding = "utf-8") as FileWrite:

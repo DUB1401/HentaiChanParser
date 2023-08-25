@@ -3,10 +3,10 @@
 
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
-2. Установить Python версии не старше 3.9. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [webdriver-manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
+2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
+3. В среду исполнения установить следующие пакеты: [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
 ```
-pip install webdriver-manager
+pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
 pip install Selenium
@@ -55,13 +55,12 @@ rp.py update [FLAGS] [KEYS]
 * _**-f**_ – включает перезапись уже загруженных обложек и существующих JSON файлов;
 * _**-local**_ – обновляет все локальные файлы JSON.
 
-**Список ключей:**
-* _**from=**_ – указывает алиас тайтла, с момента обнаружения которого в списке обновляемых тайтлов необходимо начать обработку обновлений, а eсли таковой не был обнаружен, скрипт пропустит все обновления.
-____
-```
-hcp.py -s
-```
-Флаг _**-s**_ выключает компьютер после завершения работы скрипта. Его можно добавить к любой другой команде.
+**Список специфических ключей:**
+* _**--from**_ – указывает алиас тайтла, с момента обнаружения которого в списке обновляемых тайтлов необходимо начать обработку обновлений, а eсли таковой не был обнаружен, скрипт пропустит все обновления.
+
+## Неспецифические флаги
+Данный тип флагов работает при добавлении к любой команде и выполняет отдельную от оной функцию.
+* _**-s**_ – выключает компьютер после завершения работы скрипта.
 
 # Settings.json
 ```JSON
