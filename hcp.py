@@ -234,6 +234,8 @@ if CommandDataStruct.Name in ["getcov", "parce", "update"]:
 # >>>>> ОБРАБОТКА КОММАНД <<<<< #
 #==========================================================================================#
 
+
+
 # Обработка команды: convert.
 if "convert" == CommandDataStruct.Name:
 	# Запись в лог сообщения: конвертирование.
@@ -371,9 +373,9 @@ if "update" == CommandDataStruct.Name:
 			# Парсинг тайтла.
 			LocalTitle = TitleParser(Settings, Browser, Slug.replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
 			# Загрузка обложек.
-			LocalTitle.DownloadCover()
+			LocalTitle.downloadCover()
 			# Сохранение локальных файлов тайтла.
-			LocalTitle.Save()
+			LocalTitle.save()
 
 	# Обновить изменённые на сервере за последнее время тайтлы.
 	else:
@@ -421,9 +423,9 @@ if "update" == CommandDataStruct.Name:
 			# Парсинг тайтла.
 			LocalTitle = TitleParser(Settings, Browser, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
 			# Загрузка обложек.
-			LocalTitle.DownloadCover()
+			LocalTitle.downloadCover()
 			# Сохранение локальных файлов тайтла.
-			LocalTitle.Save()
+			LocalTitle.save()
 
 #==========================================================================================#
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #

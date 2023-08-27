@@ -1,4 +1,5 @@
 from Source.BrowserNavigator import BrowserNavigator
+from dublib.Methods import Cls
 from selenium import webdriver
 from bs4 import BeautifulSoup
 
@@ -75,8 +76,12 @@ class Updater:
 
 		# Загружать страницы каталога последовательно.
 		while IsAllUpdatesRecieved == False:
+			# Очистка консоли.
+			Cls()
+			# Вывод в консоль: сканируемая страница.
+			print("Scanning page: " + str(PageIndex + 1) + "...")
 			# Переход на страницу каталога.
-			self.__Navigator.LoadPage("https://hentaichan.live/manga/new?offset=" + str(20 * PageIndex))
+			self.__Navigator.LoadPage("https://hentaichan.live/manga/new?offset=" + str(20 * PageIndex), 30)
 			# HTML код тела страницы после полной загрузки.
 			BodyHTML = self.__Navigator.GetBodyHTML()
 			# Парсинг HTML кода страницы.

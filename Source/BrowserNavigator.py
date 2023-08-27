@@ -1,5 +1,6 @@
 from selenium import webdriver
 from threading import Timer
+from time import sleep
 
 import logging
 
@@ -57,12 +58,36 @@ class BrowserNavigator:
 
 		# Если все условия выполнены.
 		if LoadCondition == True:
-
+			# Состояние: успешна ли загрузка страницы.
+			IsLoaded = False
+			# Количество повторов.
+			TriesCount = 0
+			
 			# Если установлен тайм-аут, то запустить таймер остановки загрузки страницы.
 			if Timeout > 0:
 				StopTimer.start()
 
-			# Переход на страницу.
-			self.__Browser.get(URL)
-			# Остановка таймера.
-			StopTimer.cancel()
+			# Повторять, пока страница не загружена.
+			while IsLoaded == False:
+				try:
+					# Переход на страницу.
+					self.__Browser.get(URL)
+				
+				except Exception:
+					# Инкремент количества повторов.
+					TriesCount += 1
+					# Запись в лог: не удалось загрузить страницу.
+					logging.error("Unable to load page. Retry...")
+					
+					# Если достигнуто максимальное количество повторов, выбросить исключение.
+					if TriesCount == self.__Settings["retry-tries"]:
+						raise TimeoutError("unable to load page")
+
+					# Выжидание интервала повтора.
+					sleep(self.__Settings["retry-delay"])
+			
+				else:
+					# Переключение статуса загрузки страницы.
+					IsLoaded = True
+					# Остановка таймера.
+					StopTimer.cancel()
