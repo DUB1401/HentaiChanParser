@@ -61,7 +61,7 @@ class TitleParser:
 							Slide.src = "{SlideLink}";
 						'''
 						# Получение разрешения слайда.
-						SlideResolution = self.__Navigator.executeAsyncJS(Script)
+						SlideResolution = self.__Navigator.executeAsyncJavaScript(Script)
 
 						# Проверка успешности получения ширины слайда.
 						if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
@@ -514,7 +514,7 @@ class TitleParser:
 						Slide.src = "{CoverLink}";
 					'''
 					# Получение разрешения обложки.
-					CoverResolution = self.__Browser.execute_async_script(Script)
+					CoverResolution = self.__Navigator.executeAsyncJavaScript(Script)
 
 					# Проверка успешности получения ширины обложки.
 					if CoverResolution.split('/')[0].isdigit() == True and int(CoverResolution.split('/')[0]) > 0:

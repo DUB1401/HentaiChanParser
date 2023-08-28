@@ -59,10 +59,35 @@ class BrowserNavigator:
 			pass
 		
 	# Асинхронно выполняет JavaScript.
-	def executeAsyncJS(self, Script: str):
-		# Выполнение скрипта и запист результата.
-		Result = self.__Browser.execute_async_script(Script)
-
+	def executeAsyncJavaScript(self, Script: str):
+		# Результат выполнения скрипта.
+		Result = None
+		# Количество повторов.
+		TriesCount = 0
+		# Состояние: вернул ли скрипт ответ.
+		IsLoaded = False
+		
+		# Повторять, пока скрипт не вернёт ответ.
+		while IsLoaded == False:
+				
+			try:
+				# Выполнение скрипта и запись результата.
+				Result = self.__Browser.execute_async_script(Script)
+					
+			except Exception:
+				# Инкремент количества повторов.
+				TriesCount += 1
+				# Запись в лог ошибки: не удалось загрузить страницу.
+				logging.error(f"Unable to execute async script: {TriesCount} retry...")
+					
+				# Если достигнуто максимальное количество повторов, выбросить исключение.
+				if TriesCount == self.__Settings["retry-tries"]:
+					raise TimeoutError("unable to execute async script")
+			
+			else:
+				# Переключение статуса загрузки страницы.
+				IsLoaded = True
+				
 		return Result
 
 	# Возвращает HTML код тела страницы после полной загрузки.
@@ -102,8 +127,8 @@ class BrowserNavigator:
 				except Exception:
 					# Инкремент количества повторов.
 					TriesCount += 1
-					# Запись в лог: не удалось загрузить страницу.
-					logging.error("Unable to load page. Retry...")
+					# Запись в лог ошибки: не удалось загрузить страницу.
+					logging.error(f"Unable to load page: {TriesCount} retry...")
 					# Инициализация браузера.
 					self.__InitializeWebDriver()
 					
