@@ -1,15 +1,12 @@
 #!/usr/bin/python
 
 from dublib.Methods import Cls, Shutdown, WriteJSON, ReadJSON
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+from Source.BrowserNavigator import BrowserNavigator
 from Source.Functions import SecondsToTimeString
 from Source.TitleParser import TitleParser
 from Source.Formatter import Formatter
 from Source.Updater import Updater
 from dublib.Terminalyzer import *
-from selenium import webdriver
 
 import datetime
 import logging
@@ -47,6 +44,8 @@ LogFilename = LogFilename.replace(':', '-')
 logging.basicConfig(filename = LogFilename, encoding = "utf-8", level = logging.INFO)
 # Отключение части сообщений логов библиотеки requests.
 logging.getLogger("requests").setLevel(logging.CRITICAL)
+# Отключение части сообщений логов библиотеки urllib3.
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
 #==========================================================================================#
 # >>>>> ЧТЕНИЕ НАСТРОЕК <<<<< #
@@ -72,8 +71,6 @@ if os.path.exists("Settings.json"):
 	with open("Settings.json", encoding = "utf-8") as FileRead:
 		# Чтение настроек.
 		Settings = json.load(FileRead)
-		# Запись в лог сообщения об успешном чтении файла настроек.
-		logging.info("Settings file was found.")
 
 		# Интерпретация выходной директории обложек и коррекция пути.
 		if Settings["covers-directory"] == "":
@@ -117,6 +114,11 @@ else:
 
 # Список описаний обрабатываемых команд.
 CommandsList = list()
+
+# Создание команды: collect.
+COM_collect = Command("collect")
+COM_collect.addFlagPosition(["s"])
+CommandsList.append(COM_collect)
 
 # Создание команды: convert.
 COM_convert = Command("convert")
@@ -203,38 +205,31 @@ if "s" in CommandDataStruct.Flags:
 # >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
 #==========================================================================================#
 
-# Экземпляр веб-драйвера Google Chrome.
-Browser = None
+# Экземпляр навигатора.
+Navigator = None
 
 # Если потребуется браузер.
-if CommandDataStruct.Name in ["getcov", "parce", "update"]:
-	# Опции веб-драйвера.
-	ChromeOptions = Options()
-	# Установка опций.
-	ChromeOptions.add_argument("--no-sandbox")
-	ChromeOptions.add_argument("--disable-dev-shm-usage")
-	ChromeOptions.add_argument("--disable-gpu");
-	ChromeOptions.add_experimental_option("excludeSwitches", ["enable-logging"])
-
-	# При отключённом режиме отладки скрыть окно браузера.
-	if Settings["debug"] is False:
-		ChromeOptions.add_argument("--headless=new")
-
-	try:
-		# Инициализация браузера.
-		Browser = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = ChromeOptions)
-		# Установка размера окна браузера на FullHD для корректной работы сайтов.
-		Browser.set_window_size(1920, 1080)
-
-	except FileNotFoundError:
-		# Запись в лог критической ошибки: неверный путь к вдрайверу.
-		logging.critical("Unable to locate webdriver! Try to remove \".wdm\" folder in script directory.")
+if CommandDataStruct.Name in ["collect", "getcov", "parce", "update"]:
+	Navigator = BrowserNavigator(Settings)
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА КОММАНД <<<<< #
 #==========================================================================================#
 
+# Обработка команды: collect.
+if "collect" == CommandDataStruct.Name:
+	# Запись в лог сообщения: сбор списка тайтлов.
+	logging.info("====== Collecting ======")
+	# Инициализация проверки обновлений.
+	UpdateChecker = Updater(Settings, Navigator)
+	# Получение списка обновлённых тайтлов.
+	TitlesList = UpdateChecker.getUpdatesList()
+	UpdateChecker = None
 
+	# Сохранение каждого алиаса в файл.
+	with open("Collection.txt", "w") as FileWriter:
+		for Slug in TitlesList:
+			FileWriter.write(Slug + "\n")
 
 # Обработка команды: convert.
 if "convert" == CommandDataStruct.Name:
@@ -273,7 +268,7 @@ if "getcov" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
 	# Парсинг тайтла.
-	LocalTitle = TitleParser(Settings, Browser, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
+	LocalTitle = TitleParser(Settings, Navigator, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
 	# Сохранение локальных файлов тайтла.
 	LocalTitle.downloadCover()
 
@@ -282,7 +277,7 @@ if "parce" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
 	# Парсинг тайтла.
-	LocalTitle = TitleParser(Settings, Browser, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
+	LocalTitle = TitleParser(Settings, Navigator, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
 	# Загружает обложку тайтла.
 	LocalTitle.downloadCover()
 	# Сохранение локальных файлов тайтла.
@@ -371,7 +366,7 @@ if "update" == CommandDataStruct.Name:
 			# Генерация сообщения.
 			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(len(TitlesList) - len(TitlesSlugs) + CurrentTitleIndex) + " / " + str(len(TitlesList)) + "\n"
 			# Парсинг тайтла.
-			LocalTitle = TitleParser(Settings, Browser, Slug.replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
+			LocalTitle = TitleParser(Settings, Navigator, Slug.replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
 			# Загрузка обложек.
 			LocalTitle.downloadCover()
 			# Сохранение локальных файлов тайтла.
@@ -380,9 +375,9 @@ if "update" == CommandDataStruct.Name:
 	# Обновить изменённые на сервере за последнее время тайтлы.
 	else:
 		# Инициализация проверки обновлений.
-		UpdateChecker = Updater(Settings, Browser)
+		UpdateChecker = Updater(Settings, Navigator)
 		# Получение списка обновлённых тайтлов.
-		UpdatedTitlesList = UpdateChecker.GetUpdatesList()
+		UpdatedTitlesList = UpdateChecker.getUpdatesList()
 		# Индекс обрабатываемого тайтла.
 		CurrentTitleIndex = 0
 		# Запись в лог сообщения: количество найденных за указанный период обновлений.
@@ -421,7 +416,7 @@ if "update" == CommandDataStruct.Name:
 			# Генерация сообщения.
 			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(CurrentTitleIndex) + " / " + str(len(UpdatedTitlesList)) + "\n"
 			# Парсинг тайтла.
-			LocalTitle = TitleParser(Settings, Browser, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
+			LocalTitle = TitleParser(Settings, Navigator, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
 			# Загрузка обложек.
 			LocalTitle.downloadCover()
 			# Сохранение локальных файлов тайтла.
@@ -431,12 +426,9 @@ if "update" == CommandDataStruct.Name:
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #
 #==========================================================================================#
 
-try:
-	# Попытка закрыть браузер.
-	Browser.close()
-
-except Exception:
-	pass
+# Если использовался браузер, то закрыть его.
+if Navigator != None:
+	Navigator.close()
 
 # Запись в лог сообщения: заголовок завершения работы скрипта.
 logging.info("====== Exiting ======")

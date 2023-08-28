@@ -1,8 +1,18 @@
+# Visual Studio project files.
 HentaiChan Parser.pyproj
 HentaiChan Parser.sln
-__pycache__/
-Covers/
-Titles/
-Logs/
-.wdm/
-.vs/
+.vs
+
+# Parced titles data.
+Covers
+Titles
+Logs
+
+# Collection of title's slugs.
+Collection.txt
+
+# Python cache.
+__pycache__
+
+# WebDriver manager configuration.
+.wdm

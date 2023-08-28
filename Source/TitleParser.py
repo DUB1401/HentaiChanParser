@@ -2,7 +2,6 @@ from dublib.Methods import CheckForCyrillicPresence, Cls, RemoveRecurringSubstri
 from Source.BrowserNavigator import BrowserNavigator
 from Source.Formatter import Formatter
 from collections import Counter
-from selenium import webdriver
 from bs4 import BeautifulSoup
 
 import requests
@@ -62,7 +61,7 @@ class TitleParser:
 							Slide.src = "{SlideLink}";
 						'''
 						# Получение разрешения слайда.
-						SlideResolution = self.__Browser.execute_async_script(Script)
+						SlideResolution = self.__Navigator.executeAsyncJS(Script)
 
 						# Проверка успешности получения ширины слайда.
 						if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
@@ -135,9 +134,9 @@ class TitleParser:
 	# Возвращает структуру главы.
 	def __GetChapter(self, ChapterSlug: str) -> dict:
 		# Переход на страницу главы.
-		self.__Navigator.LoadPage("https://hentaichan.live/manga/" + ChapterSlug + ".html")
+		self.__Navigator.loadPage("https://hentaichan.live/manga/" + ChapterSlug + ".html")
 		# HTML код тела страницы после полной загрузки.
-		BodyHTML = self.__Navigator.GetBodyHTML()
+		BodyHTML = self.__Navigator.getBodyHTML()
 		# Парсинг HTML кода страницы.
 		Soup = BeautifulSoup(BodyHTML, "html.parser")
 		# Поиск блока переводчика.
@@ -370,9 +369,9 @@ class TitleParser:
 		# Для каждого слайда составить структуру.
 		for SlideIndex in range(1, SlidesCount + 1):
 			# Переход на страницу слайда.
-			self.__Navigator.LoadPage("https://hentaichan.live/online/" + ChapterSlug + ".html?page=" + str(SlideIndex), Timeout = 30)
+			self.__Navigator.loadPage("https://hentaichan.live/online/" + ChapterSlug + ".html?page=" + str(SlideIndex))
 			# HTML код тела страницы после полной загрузки.
-			BodyHTML = self.__Navigator.GetBodyHTML()
+			BodyHTML = self.__Navigator.getBodyHTML()
 			# Парсинг HTML кода страницы.
 			Soup = BeautifulSoup(BodyHTML, "html.parser")
 			# Поиск блока со слайдом.
@@ -413,9 +412,9 @@ class TitleParser:
 		# Количество слайдов в главе.
 		SlidesCount = 0
 		# Переход на страницу чтения главы.
-		self.__Navigator.LoadPage("https://hentaichan.live/online/" + ChapterSlug + ".html")
+		self.__Navigator.loadPage("https://hentaichan.live/online/" + ChapterSlug + ".html")
 		# HTML код тела страницы после полной загрузки.
-		BodyHTML = self.__Navigator.GetBodyHTML()
+		BodyHTML = self.__Navigator.getBodyHTML()
 		# Парсинг HTML кода страницы.
 		Soup = BeautifulSoup(BodyHTML, "html.parser")
 		# Поиск блока со слайдами.
@@ -434,9 +433,9 @@ class TitleParser:
 		# URL всех глав тайтла или похожих тайтлов.
 		TitleURL = "https://hentaichan.live/related/" + self.__Slug + ".html"
 		# Переход на страницу всех глав тайтла или похожих тайтлов.
-		self.__Navigator.LoadPage(TitleURL)
+		self.__Navigator.loadPage(TitleURL)
 		# HTML код тела страницы после полной загрузки.
-		PageHTML = self.__Navigator.GetBodyHTML()
+		PageHTML = self.__Navigator.getBodyHTML()
 		
 		# Если у тайтла одна глава.
 		if "Хентай похожий на" in str(PageHTML):
@@ -451,9 +450,9 @@ class TitleParser:
 			# Получение URL глав с каждой страницы.
 			for PageNumber in range(0, RelatedPagesCount):
 				# Переход на страницу тайтла.
-				self.__Navigator.LoadPage("https://hentaichan.live/related/" + self.__Slug + ".html?offset=" + str(10 * PageNumber))
+				self.__Navigator.loadPage("https://hentaichan.live/related/" + self.__Slug + ".html?offset=" + str(10 * PageNumber))
 				# HTML код тела страницы после полной загрузки.
-				PageHTML = self.__Navigator.GetBodyHTML()
+				PageHTML = self.__Navigator.getBodyHTML()
 				# Парсинг HTML кода тела страницы.
 				Soup = BeautifulSoup(PageHTML, "html.parser")
 				# Поиск блоков с информацией о главах.
@@ -552,9 +551,9 @@ class TitleParser:
 		# URL тайтла.
 		TitleURL = "https://hentaichan.live/manga/" + self.__Slug + ".html"
 		# Переход на страницу тайтла.
-		self.__Navigator.LoadPage(TitleURL)
+		self.__Navigator.loadPage(TitleURL)
 		# HTML код тела страницы после полной загрузки.
-		PageHTML = self.__Navigator.GetBodyHTML()
+		PageHTML = self.__Navigator.getBodyHTML()
 		# Парсинг HTML кода тела страницы.
 		Soup = BeautifulSoup(PageHTML, "html.parser")
 		# Поиск HTML элемента названия тайтла.
@@ -627,9 +626,9 @@ class TitleParser:
 	# Возвращает количество страниц в каталоге глав тайтла.
 	def __GetRelatedPagesCount(self) -> int:
 		# Переход на страницу тайтла.
-		self.__Navigator.LoadPage("https://hentaichan.live/related/" + self.__Slug + ".html")
+		self.__Navigator.loadPage("https://hentaichan.live/related/" + self.__Slug + ".html")
 		# HTML код тела страницы после полной загрузки.
-		PageHTML = self.__Navigator.GetBodyHTML()
+		PageHTML = self.__Navigator.getBodyHTML()
 		# Парсинг HTML кода тела страницы.
 		Soup = BeautifulSoup(PageHTML, "html.parser")
 		# Поиск HTML блока навигации по страницам.
@@ -828,7 +827,7 @@ class TitleParser:
 		return TitleNameStruct
 
 	# Конструктор: строит структуру описательного файла тайтла и проверяет наличие локальных данных.
-	def __init__(self, Settings: dict, Browser: webdriver.Chrome, Slug: str, ForceMode: bool = False, Message: str = "", Amending: bool = True):
+	def __init__(self, Settings: dict, Navigator: BrowserNavigator, Slug: str, ForceMode: bool = False, Message: str = "", Amending: bool = True):
 
 		#---> Генерация динамических свойств.
 		#==========================================================================================#
@@ -840,10 +839,8 @@ class TitleParser:
 		self.__ForceMode = ForceMode
 		# Глобальные настройки.
 		self.__Settings = Settings.copy()
-		# Экземпляр браузера.
-		self.__Browser = Browser
 		# Обработчик навигации экземпляра браузера.
-		self.__Navigator = BrowserNavigator(Settings, Browser)
+		self.__Navigator = Navigator
 		# Описательная структура тайтла.
 		self.__Title = {
 			"format": "dmp-v1",
