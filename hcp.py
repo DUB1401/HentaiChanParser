@@ -41,7 +41,7 @@ StartTime = time.time()
 LogFilename = "Logs/" + str(CurrentDate)[:-7] + ".log"
 LogFilename = LogFilename.replace(':', '-')
 # Установка конфигнурации.
-logging.basicConfig(filename = LogFilename, encoding = "utf-8", level = logging.INFO)
+logging.basicConfig(filename = LogFilename, encoding = "utf-8", level = logging.INFO, format = "%(asctime)s %(levelname)s: %(message)s", datefmt = "%Y-%m-%d %H:%M:%S")
 # Отключение части сообщений логов библиотеки requests.
 logging.getLogger("requests").setLevel(logging.CRITICAL)
 # Отключение части сообщений логов библиотеки urllib3.
@@ -63,50 +63,36 @@ logging.info("Launch command: \"" + " ".join(sys.argv[1:len(sys.argv)]) + "\".")
 os.environ["WDM_LOCAL"] = "1"
 # Отключение логов WebDriver.
 os.environ["WDM_LOG"] = str(logging.NOTSET)
+# Очистка консоли.
+Cls()
+# Чтение настроек.
+Settings = ReadJSON("Settings.json")
 
-# Проверка доступности файла настроек.
-if os.path.exists("Settings.json"):
+# Если путь к директории обложек не указан, задать стандартный.
+if Settings["covers-directory"] == "":
+	Settings["covers-directory"] = "Covers/"
+	
+# Если путь к директории обложек не заканчивается слэшем, то добавить его.
+elif Settings["covers-directory"][-1] != '/':
+	Settings["covers-directory"] += "/"
 
-	# Открытие файла настроек.
-	with open("Settings.json", encoding = "utf-8") as FileRead:
-		# Чтение настроек.
-		Settings = json.load(FileRead)
+# Если путь к директории тайтлов не указан, задать стандартный.
+if Settings["titles-directory"] == "":
+	Settings["titles-directory"] = "Titles/"
+	
+# Если путь к директории тайтлов не заканчивается слэшем, то добавить его.
+elif Settings["titles-directory"][-1] != '/':
+	Settings["titles-directory"] += "/"
 
-		# Интерпретация выходной директории обложек и коррекция пути.
-		if Settings["covers-directory"] == "":
-			Settings["covers-directory"] = "Covers/"
-		elif Settings["covers-directory"][-1] != '/':
-			Settings["covers-directory"] += "/"
+# Приведение формата описательного файла к нижнему регистру.
+Settings["format"] = Settings["format"].lower()
+# Запись в лог сообщения: формат выходного файла.
+logging.info("Output file format: \"" + Settings["format"] + "\".")
 
-		# Интерпретация выходной директории обложек и коррекция пути.
-		if Settings["titles-directory"] == "":
-			Settings["titles-directory"] = "Titles/"
-		elif Settings["titles-directory"][-1] != '/':
-			Settings["titles-directory"] += "/"
-
-		# Приведение формата описательного файла к нижнему регистру.
-		Settings["format"] = Settings["format"].lower()
-
-		# Запись в лог сообщения: формат выходного файла.
-		logging.info("Output file format: \"" + Settings["format"] + "\".")
-
-		# Запись в лог сообщения: использование ID вместо алиаса.
-		if Settings["use-id-instead-slug"] == True:
-			logging.info("Using ID instead slug: ON.")
-		else:
-			logging.info("Using ID instead slug: OFF.")
-
-		# Запись в лог сообщения: использование ID вместо алиаса.
-		if Settings["auto-branches-merging"] == True:
-			logging.info("Automatic merging of branches: ON.")
-		else:
-			logging.info("Automatic merging of branches: OFF.")
-
-else:
-	# Запись в лог критической ошибки: не найден файл настроек.
-	logging.critical("Settings.json not found.")
-	# Выброс исключения.
-	raise Exception("Settings.json not found")
+# Запись в лог сообщения: статус режима использования ID вместо алиаса.
+logging.info("Using ID instead slug: " + ("ON." if Settings["use-id-instead-slug"] == True else "OFF."))
+# Запись в лог сообщения: статус режима использованиz ID вместо алиаса.
+logging.info("Automatic merging of branches: " + ("ON." if Settings["auto-branches-merging"] == True else "OFF."))
 
 #==========================================================================================#
 # >>>>> НАСТРОЙКА ОБРАБОТЧИКА КОМАНД <<<<< #
@@ -138,7 +124,8 @@ CommandsList.append(COM_getcov)
 
 # Создание команды: parce.
 COM_parce = Command("parce")
-COM_parce.addArgument(ArgumentType.All, Important = True)
+COM_parce.addArgument(ArgumentType.All, Important = True, LayoutIndex = 1)
+COM_parce.addFlagPosition(["collection"], Important = True, LayoutIndex = 1)
 COM_parce.addFlagPosition(["f"])
 COM_parce.addFlagPosition(["s"])
 CommandsList.append(COM_parce)
@@ -276,12 +263,56 @@ if "getcov" == CommandDataStruct.Name:
 if "parce" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
-	# Парсинг тайтла.
-	LocalTitle = TitleParser(Settings, Navigator, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
-	# Загружает обложку тайтла.
-	LocalTitle.downloadCover()
-	# Сохранение локальных файлов тайтла.
-	LocalTitle.save()
+	
+	# Если активирован флаг парсинга коллекций.
+	if "collection" in CommandDataStruct.Flags:
+		
+		# Если существует файл коллекции.
+		if os.path.exists("Collection.txt"):
+			# Список тайтлов для парсинга.
+			TitlesList = list()
+			# Индекс обрабатываемого тайтла.
+			CurrentTitleIndex = 0
+			
+			# Чтение содржимого файла.
+			with open("Collection.txt", "r") as FileReader:
+				# Буфер чтения.
+				Bufer = FileReader.read().split('\n')
+				
+				# Поместить алиасы в список на парсинг, если строка не пуста.
+				for Slug in Bufer:
+					if Slug.strip() != "":
+						TitlesList.append(Slug)
+
+			# Запись в лог сообщения: количество тайтлов в коллекции.
+			logging.info("Titles count in collection: " + str(len(TitlesList)) + ".")
+			
+			# Спарсить каждый тайтл.
+			for Slug in TitlesList:
+				# Инкремент текущего индекса.
+				CurrentTitleIndex += 1
+				# Генерация сообщения.
+				ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Parcing titles: " + str(CurrentTitleIndex) + " / " + str(len(TitlesList)) + "\n"
+				# Парсинг тайтла.
+				LocalTitle = TitleParser(Settings, Navigator, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
+				# Загружает обложку тайтла.
+				LocalTitle.downloadCover()
+				# Сохранение локальных файлов тайтла.
+				LocalTitle.save()
+				
+		else:
+			# Запись в лог критической ошибки: отсутствует файл коллекций.
+			logging.critical("Unable to find collection file.")
+			# Выброс исключения.
+			raise FileNotFoundError("Collection.txt")
+		
+	else:
+		# Парсинг тайтла.
+		LocalTitle = TitleParser(Settings, Navigator, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
+		# Загружает обложку тайтла.
+		LocalTitle.downloadCover()
+		# Сохранение локальных файлов тайтла.
+		LocalTitle.save()
 
 # Обработка команды: update.
 if "update" == CommandDataStruct.Name:
