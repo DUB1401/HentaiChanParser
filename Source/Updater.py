@@ -1,6 +1,5 @@
 from Source.BrowserNavigator import BrowserNavigator
 from dublib.Methods import Cls
-from selenium import webdriver
 from bs4 import BeautifulSoup
 
 import datetime
@@ -52,7 +51,7 @@ class Updater:
 		return Date
 
 	# Конструктор: задаёт глобальные настройки и инициализирует объект.
-	def __init__(self, Settings: dict, Browser: webdriver.Chrome):
+	def __init__(self, Settings: dict, Navigator: BrowserNavigator):
 
 		#---> Генерация свойств.
 		#==========================================================================================#
@@ -61,36 +60,36 @@ class Updater:
 		# Глобальные настройки.
 		self.__Settings = Settings.copy()
 		# Обработчик навигации экземпляра браузера.
-		self.__Navigator = BrowserNavigator(Settings, Browser)
+		self.__Navigator = Navigator
 
 	# Возвращает список алиасов обновлённых тайтлов.
-	def GetUpdatesList(self) -> list:
+	def getUpdatesList(self) -> list:
 		# Список алиасов обновлённых тайтлов.
 		Updates = list()
 		# Индекс текущей страницы.
 		PageIndex = 0
 		# Состояние: получены ли все обновления.
 		IsAllUpdatesRecieved = False
-		# Список блоков новых глав, соответствующих заданному периоду.
-		UpdatedChaptersBlocks = list()
-
+		
 		# Загружать страницы каталога последовательно.
 		while IsAllUpdatesRecieved == False:
+			# Список блоков новых глав, соответствующих заданному периоду.
+			UpdatedChaptersBlocks = list()
 			# Очистка консоли.
 			Cls()
 			# Вывод в консоль: сканируемая страница.
-			print("Scanning page: " + str(PageIndex + 1) + "...")
+			print("Scanning page: " + str(PageIndex + 1))
 			# Переход на страницу каталога.
-			self.__Navigator.LoadPage("https://hentaichan.live/manga/new?offset=" + str(20 * PageIndex), 30)
+			self.__Navigator.loadPage("https://hentaichan.live/manga/new?offset=" + str(20 * PageIndex))
 			# HTML код тела страницы после полной загрузки.
-			BodyHTML = self.__Navigator.GetBodyHTML()
+			BodyHTML = self.__Navigator.getBodyHTML()
 			# Парсинг HTML кода страницы.
 			Soup = BeautifulSoup(BodyHTML, "html.parser")
 			# Поиск всех блоков глав.
 			ChaptersBlocks = Soup.find_all("div", {"class": "content_row"})
 			# Инкремент индекса страницы.
 			PageIndex += 1
-
+			
 			# Для каждого блока главы на странице каталога.
 			for Block in ChaptersBlocks:
 				
@@ -101,16 +100,20 @@ class Updater:
 				# Если дата загрузки главы вышла за пределы заданного периода.
 				else:
 					IsAllUpdatesRecieved = True
+					
+			# Если достигнута последняя страница.
+			if len(ChaptersBlocks) == 0:
+				IsAllUpdatesRecieved = True
 
-		# Для каждого блока новой главы, соответствующего заданному периоду.
-		for Block in UpdatedChaptersBlocks:
-			# Парсинг блока главы.
-			Soup = BeautifulSoup(str(Block), "html.parser")
-			# Поиск ссылки на тайтл.
-			TitleLink = Soup.find("a", {"class": "title_link"})
-			# Получение алиаса.
-			Slug = TitleLink["href"].replace(".html", "").replace("/manga/", "")
-			# Сохранение алиаса.
-			Updates.append(Slug)
-
+			# Для каждого блока новой главы, соответствующего заданному периоду.
+			for Block in UpdatedChaptersBlocks:
+				# Парсинг блока главы.
+				Soup = BeautifulSoup(str(Block), "html.parser")
+				# Поиск ссылки на тайтл.
+				TitleLink = Soup.find("a", {"class": "title_link"})
+				# Получение алиаса.
+				Slug = TitleLink["href"].replace(".html", "").replace("/manga/", "")
+				# Сохранение алиаса.
+				Updates.append(Slug)
+			
 		return Updates
