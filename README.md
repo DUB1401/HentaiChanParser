@@ -4,8 +4,9 @@
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
+3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
 ```
+pip install git+https://github.com/DUB1401/dublib#egg=dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
@@ -22,12 +23,12 @@ pip install -r requirements.txt
 
 # Консольные команды
 ```
-rp.py collect
+hcp.py collect
 ```
 Помещает список алиасов тайтлов, обновлённых на сайте за указанный в настройках период поиска обновлений, в файл _Collection.txt_.
 ___
 ```
-rp.py convert [FILENAME] [SOURCE_FORMAT] [OUTPUT_FORMAT]
+hcp.py convert [FILENAME] [SOURCE_FORMAT] [OUTPUT_FORMAT]
 ```
 Преобразует внутреннюю структуру JSON файлов определений тайтлов согласно одному из поддерживаемых форматов: [DMP-V1](Examples/DMP-V1.md), [HCMP-V1](Examples/HCMP-V1.md).
 
@@ -36,7 +37,7 @@ rp.py convert [FILENAME] [SOURCE_FORMAT] [OUTPUT_FORMAT]
 Если вместо исходного формата указать флаг _**-auto**_, то конвертер автоматически попытается определить формат на основании содержимого JSON.
 ___
 ```
-rp.py getcov [MANGA_SLUG] [FLAGS]
+hcp.py getcov [MANGA_SLUG] [FLAGS]
 ```
 Загружает обложки конкретного тайтла.
 
