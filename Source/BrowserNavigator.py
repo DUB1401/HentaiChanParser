@@ -32,6 +32,9 @@ class BrowserNavigator:
 			self.__Browser = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = ChromeOptions)
 			# Установка размера окна браузера на FullHD для корректной работы сайтов.
 			self.__Browser.set_window_size(1920, 1080)
+			# Установка максимального времени загрузки страницы и выполнения скрипта.
+			self.__Browser.set_page_load_timeout(300)
+			self.__Browser.set_script_timeout(300)
 			
 		except FileNotFoundError:
 			# Запись в лог критической ошибки: неверный путь к вдрайверу.
