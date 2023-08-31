@@ -596,8 +596,8 @@ class TitleParser:
 		self.__Title["publication-year"]
 		self.__Title["age-rating"] = 18
 		self.__Title["description"] = Description
-		self.__Title["type"]
-		self.__Title["status"]
+		self.__Title["type"] = "UNKNOWN"
+		self.__Title["status"] = "UNKNOWN"
 		self.__Title["is-licensed"] = False
 		self.__Title["series"] = self.__GetSeries(Soup)
 		self.__Title["genres"] = list()
@@ -908,6 +908,8 @@ class TitleParser:
 		DownloadedCoversCounter = 0
 		# Используемое имя тайтла: ID или алиас.
 		UsedTitleName = None
+		# Очистка консоли.
+		Cls()
 		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
 		print(self.__Message, end = "")
 		
@@ -930,8 +932,6 @@ class TitleParser:
 			CoverFilename = self.__Title["covers"][CoverIndex]["filename"]
 			# Ответ запроса.
 			Response = None
-			# Очистка консоли.
-			Cls()
 
 			# Если включён режим перезаписи, то удалить файл обложки.
 			if self.__ForceMode == True:
