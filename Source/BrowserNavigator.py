@@ -14,14 +14,10 @@ class BrowserNavigator:
 		# Опции веб-драйвера.
 		ChromeOptions = Options()
 		# Установка опций.
-		ChromeOptions.add_argument("disable-infobars")
 		ChromeOptions.add_argument("--no-sandbox")
 		ChromeOptions.add_argument("--disable-dev-shm-usage")
 		ChromeOptions.add_argument("--disable-gpu")
-		ChromeOptions.add_argument("--disable-extensions")
-		ChromeOptions.add_argument('--disable-application-cache')
 		ChromeOptions.add_experimental_option("excludeSwitches", ["enable-logging"])
-		ChromeOptions.page_load_strategy = "eager"
 		
 		# При отключённом режиме отладки скрыть окно браузера.
 		if self.__Settings["debug"] is False:
@@ -77,9 +73,13 @@ class BrowserNavigator:
 				# Выполнение скрипта и запись результата.
 				Result = self.__Browser.execute_async_script(Script)
 					
-			except Exception:
+			except Exception as ExceptionDescription:
+				# Сохранение только первой строки исключения.
+				ExceptionDescription = str(ExceptionDescription).split('\n')[0].strip(" \n.\t")
 				# Инкремент количества повторов.
 				TriesCount += 1
+				# Запись в лог ошибки: содержимое ошибки.
+				logging.error(f"\"{ExceptionDescription}\".")
 				# Запись в лог ошибки: не удалось загрузить страницу.
 				logging.error(f"Unable to execute async script: {TriesCount} retry...")
 					
@@ -127,9 +127,13 @@ class BrowserNavigator:
 					# Переход на страницу.
 					self.__Browser.get(URL)
 					
-				except Exception:
+				except Exception as ExceptionDescription:
+					# Сохранение только первой строки исключения.
+					ExceptionDescription = str(ExceptionDescription).split('\n')[0].strip(" \n.\t")
 					# Инкремент количества повторов.
 					TriesCount += 1
+					# Запись в лог ошибки: содержимое ошибки.
+					logging.error(f"\"{ExceptionDescription}\".")
 					# Запись в лог ошибки: не удалось загрузить страницу.
 					logging.error(f"Unable to load page: {TriesCount} retry...")
 					# Инициализация браузера.
