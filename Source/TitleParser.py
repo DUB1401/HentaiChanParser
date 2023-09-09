@@ -51,25 +51,33 @@ class TitleParser:
 					for SlideIndex in range(0, len(self.__Title["chapters"][BranchID][ChapterIndex]["slides"])):
 						# Ссылка на слайд.
 						SlideLink = self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["link"]
-						# Скрипт определения разрешения слайда.
-						Script = f'''
-							var Done = arguments[0];
-							const Slide = new Image();
-							Slide.onload = function() {{
-							  Done(Slide.width + "/" + Slide.height);
-							}}
-							Slide.src = "{SlideLink}";
-						'''
-						# Получение разрешения слайда.
-						SlideResolution = self.__Navigator.executeAsyncJavaScript(Script)
+						
+						# Если ссылка на слайд заканчивается расширением MP4.
+						if SlideLink.endswith(".mp4") == False:
 
-						# Проверка успешности получения ширины слайда.
-						if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
-							self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["width"] = int(SlideResolution.split('/')[0])
+							# Скрипт определения разрешения слайда.
+							Script = f'''
+								var Done = arguments[0];
+								const Slide = new Image();
+								Slide.onload = function() {{
+								  Done(Slide.width + "/" + Slide.height);
+								}}
+								Slide.src = "{SlideLink}";
+							'''
+							# Получение разрешения слайда.
+							SlideResolution = self.__Navigator.executeAsyncJavaScript(Script)
 
-						# Проверка успешности получения разрешения.
-						if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
-							self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
+							# Проверка успешности получения ширины слайда.
+							if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
+								self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["width"] = int(SlideResolution.split('/')[0])
+
+							# Проверка успешности получения разрешения.
+							if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
+								self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
+								
+						else:
+							# Запись в лог предупреждения: слайд является видео.
+							logging.warning("Title: \"" + self.__Slug + f"\". Slide {SlideIndex} is MP4 video.")
 
 		# Запись в лог сообщения: количество дополненных глав.
 		logging.info("Title: \"" + self.__Slug + "\". Amended chapters: " + str(AmendedChaptersCount) + ".")
