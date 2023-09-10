@@ -4,13 +4,14 @@
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium).
+3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
 ```
 pip install git+https://github.com/DUB1401/dublib#egg=dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
 pip install Selenium
+pip install Pillow
 ```
 Либо установить сразу все пакеты при помощи следующей команды, выполненной из директории скрипта.
 ```
@@ -45,13 +46,16 @@ hcp.py getcov [MANGA_SLUG] [FLAGS]
 * _**-f**_ – включает перезапись уже загруженных обложек.
 ___
 ```
-hcp.py parce [MANGA_SLUG] [FLAGS]
+hcp.py parce [MANGA_SLUG] [FLAGS] [KEYS]
 ```
 Проводит парсинг тайтла с указанным алиасом в JSON формат и загружает его обложки. В случае, если файл тайтла уже существует, дополнит его новыми данными. 
 
 **Список специфических флагов:**
 * _**-collection**_ – указывает на то, что список тайтлов для парсинга необходимо взять из файла _Collection.txt_ (заменяет собой алиас тайтла);
 * _**-f**_ – включает перезапись уже загруженных обложек и существующих JSON файлов.
+
+**Список специфических ключей:**
+* _**--from**_ – указывает, с момента обнаружение какого алиаса необходимо начать парсинг коллекции.
 ___
 ```
 rp.py update [FLAGS] [KEYS]

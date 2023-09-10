@@ -3,4 +3,5 @@ webdriver_manager
 BeautifulSoup4
 PyEnchant
 Selenium
+Pillow
 lxml

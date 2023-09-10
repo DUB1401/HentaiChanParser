@@ -88,7 +88,6 @@ elif Settings["titles-directory"][-1] != '/':
 Settings["format"] = Settings["format"].lower()
 # Запись в лог сообщения: формат выходного файла.
 logging.info("Output file format: \"" + Settings["format"] + "\".")
-
 # Запись в лог сообщения: статус режима использования ID вместо алиаса.
 logging.info("Using ID instead slug: " + ("ON." if Settings["use-id-instead-slug"] == True else "OFF."))
 # Запись в лог сообщения: статус режима использованиz ID вместо алиаса.
@@ -128,6 +127,7 @@ COM_parce.addArgument(ArgumentType.All, Important = True, LayoutIndex = 1)
 COM_parce.addFlagPosition(["collection"], Important = True, LayoutIndex = 1)
 COM_parce.addFlagPosition(["f"])
 COM_parce.addFlagPosition(["s"])
+COM_parce.addKeyPosition(["from"], ArgumentType.All)
 CommandsList.append(COM_parce)
 
 # Создание команды: update.
@@ -263,14 +263,16 @@ if "getcov" == CommandDataStruct.Name:
 if "parce" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
+	# Список тайтлов для парсинга.
+	TitlesList = list()
+	# Индекс стартового алиаса.
+	StartSlugIndex = 0
 	
 	# Если активирован флаг парсинга коллекций.
 	if "collection" in CommandDataStruct.Flags:
 		
 		# Если существует файл коллекции.
 		if os.path.exists("Collection.txt"):
-			# Список тайтлов для парсинга.
-			TitlesList = list()
 			# Индекс обрабатываемого тайтла.
 			CurrentTitleIndex = 0
 			
@@ -286,29 +288,41 @@ if "parce" == CommandDataStruct.Name:
 
 			# Запись в лог сообщения: количество тайтлов в коллекции.
 			logging.info("Titles count in collection: " + str(len(TitlesList)) + ".")
-			
-			# Спарсить каждый тайтл.
-			for Slug in TitlesList:
-				# Инкремент текущего индекса.
-				CurrentTitleIndex += 1
-				# Генерация сообщения.
-				ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Parcing titles: " + str(CurrentTitleIndex) + " / " + str(len(TitlesList)) + "\n"
-				# Парсинг тайтла.
-				LocalTitle = TitleParser(Settings, Navigator, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
-				# Загружает обложку тайтла.
-				LocalTitle.downloadCover()
-				# Сохранение локальных файлов тайтла.
-				LocalTitle.save()
 				
 		else:
 			# Запись в лог критической ошибки: отсутствует файл коллекций.
 			logging.critical("Unable to find collection file.")
 			# Выброс исключения.
 			raise FileNotFoundError("Collection.txt")
-		
+
 	else:
+		# Добавление аргумента в очередь парсинга.
+		TitlesList.append(CommandDataStruct.Arguments[0])
+
+	# Если указан алиас, с которого необходимо начать.
+	if "from" in CommandDataStruct.Keys:
+		
+		# Если алиас присутствует в списке.
+		if CommandDataStruct.Values["from"] in TitlesList:
+			# Запись в лог сообщения: парсинг коллекции начнётся с алиаса.
+			logging.info("Parcing will be started from \"" + CommandDataStruct.Values["from"] + "\".")
+			# Задать стартовый индекс, равный индексу алиаса в коллекции.
+			StartSlugIndex = TitlesList.index(CommandDataStruct.Values["from"])
+			
+		else:
+			# Запись в лог предупреждения: стартовый алиас не найден.
+			logging.warning("Unable to find start slug in \"Collection.txt\". All titles skipped.")
+			# Задать стартовый индекс, равный количеству алиасов.
+			StartSlugIndex = len(TitlesList)
+			
+	# Спарсить каждый тайтл из списка.
+	for Index in range(StartSlugIndex, len(TitlesList)):
+		# Часть сообщения о прогрессе.
+		InFuncMessage_Progress = "Parcing titles: " + str(Index + 1) + " / " + str(len(TitlesList)) + "\n"
+		# Генерация сообщения.
+		ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + InFuncMessage_Progress if len(TitlesList) > 1 else ""
 		# Парсинг тайтла.
-		LocalTitle = TitleParser(Settings, Navigator, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode)
+		LocalTitle = TitleParser(Settings, Navigator, TitlesList[Index], ForceMode = IsForceModeActivated, Message = ExternalMessage)
 		# Загружает обложку тайтла.
 		LocalTitle.downloadCover()
 		# Сохранение локальных файлов тайтла.
@@ -318,47 +332,65 @@ if "parce" == CommandDataStruct.Name:
 if "update" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок обновления.
 	logging.info("====== Updating ======")
-	# Алиас стартового тайтла.
-	FromTitle = None
-		
-	# Если указано, с какого тайтла начать.
-	if "from" in CommandDataStruct.Keys:
-		FromTitle = CommandDataStruct.Values["from"]
-
-	# Обновить все локальные файлы.
+	# Список тайтлов для обновления.
+	TitlesList = list()
+	# Индекс стартового алиаса.
+	StartSlugIndex = 0
+	
+	# Если указано обновить локальные тайтлы.
 	if "local" in CommandDataStruct.Flags:
-
-		try:
-			# Получение списка файлов в директории.
-			TitlesList = os.listdir(Settings["titles-directory"])
-
-		except FileNotFoundError:
-			TitlesList = list()
-
+		# Список названий файлов в директории тайтлов.
+		Files = list()
+		# Получение списка файлов в директории.
+		Files = os.listdir(Settings["titles-directory"])
 		# Фильтрация только файлов формата JSON.
-		TitlesList = list(filter(lambda x: x.endswith(".json"), TitlesList))
-		# Индекс обрабатываемого тайтла.
-		CurrentTitleIndex = 0
-		# Алиасы тайтлов.
-		TitlesSlugs = list()
+		Files = list(filter(lambda x: x.endswith(".json"), Files))
 			
 		# Чтение всех алиасов из локальных файлов.
-		for File in TitlesList:
+		for File in Files:
 			# Открытие локального описательного файла JSON.
-			with open(Settings["titles-directory"] + File, encoding = "utf-8") as FileRead:
-				# JSON файл тайтла.
-				LocalTitle = json.load(FileRead)
+			LocalTitle = ReadJSON(Settings["titles-directory"] + File)
 
-				# Помещение алиаса в список из формата DMP-V1.
-				if LocalTitle["format"] == "dmp-v1":
-					TitlesSlugs.append(LocalTitle["slug"])
+			# Помещение алиаса в список из формата DMP-V1.
+			if LocalTitle["format"] == "dmp-v1":
+				TitlesList.append(LocalTitle["slug"])
 
-				# Помещение алиаса в список из формата HCMP-V1.
-				if LocalTitle["format"] == "hcmp-v1":
-					TitlesSlugs.append(str(LocalTitle["id"]) + "-" + LocalTitle["slug"])
+			# Помещение алиаса в список из формата HCMP-V1.
+			if LocalTitle["format"] == "hcmp-v1":
+				TitlesList.append(str(LocalTitle["id"]) + "-" + LocalTitle["slug"])
 
 		# Запись в лог сообщения: количество доступных для обновления тайтлов.
 		logging.info("Local titles to update: " + str(len(TitlesList)) + ".")
+		
+	# Обновить изменённые на сервере за последнее время тайтлы.
+	else:
+		# Инициализация проверки обновлений.
+		UpdateChecker = Updater(Settings, Navigator)
+		# Получение списка обновлённых тайтлов.
+		TitlesList = UpdateChecker.getUpdatesList()
+		# Индекс обрабатываемого тайтла.
+		CurrentTitleIndex = 0
+		# Запись в лог сообщения: количество найденных за указанный период обновлений.
+		logging.info("Titles found for update period: " + str(len(TitlesList)) + ".")
+	
+	# Если указан алиас, с которого необходимо начать.
+	if "from" in CommandDataStruct.Keys:
+		
+		# Если алиас присутствует в списке.
+		if CommandDataStruct.Values["from"] in TitlesList:
+			# Запись в лог сообщения: парсинг коллекции начнётся с алиаса.
+			logging.info("Parcing will be started from \"" + CommandDataStruct.Values["from"] + "\".")
+			# Задать стартовый индекс, равный индексу алиаса в коллекции.
+			StartSlugIndex = TitlesList.index(CommandDataStruct.Values["from"])
+			
+		else:
+			# Запись в лог предупреждения: стартовый алиас не найден.
+			logging.warning("Unable to find start slug in \"Collection.txt\". All titles skipped.")
+			# Задать стартовый индекс, равный количеству алиасов.
+			StartSlugIndex = len(TitlesList)
+		
+
+	
 
 		# Старт с указанного тайтла.
 		if FromTitle != None:
@@ -403,55 +435,21 @@ if "update" == CommandDataStruct.Name:
 			# Сохранение локальных файлов тайтла.
 			LocalTitle.save()
 
-	# Обновить изменённые на сервере за последнее время тайтлы.
-	else:
-		# Инициализация проверки обновлений.
-		UpdateChecker = Updater(Settings, Navigator)
-		# Получение списка обновлённых тайтлов.
-		UpdatedTitlesList = UpdateChecker.getUpdatesList()
-		# Индекс обрабатываемого тайтла.
-		CurrentTitleIndex = 0
-		# Запись в лог сообщения: количество найденных за указанный период обновлений.
-		logging.info("Titles found for update period: " + str(len(UpdatedTitlesList)) + ".")
-
-		# Старт с указанного тайтла.
-		if FromTitle != None:
-			# Запись в лог сообщения: стартовый тайтл обновления.
-			logging.info("Updating starts from title with slug: \"" + FromTitle + "\".")
-			# Буферный список тайтлов.
-			BuferTitleSlugs = list()
-			# Состояние: записывать ли тайтлы.
-			IsWriteSlugs = False
-				
-			# Перебор тайтлов.
-			for Slug in UpdatedTitlesList:
-					
-				# Если обнаружен стартовый тайтл, то включить запись тайтлов в новый список обновлений.
-				if Slug == FromTitle:
-					IsWriteSlugs = True
-						
-				# Добавить алиас в список обновляемых тайтлов.
-				if IsWriteSlugs is True:
-					BuferTitleSlugs.append(Slug)
-
-			# Перезапись списка обновляемых тайтлов.
-			UpdatedTitlesList = BuferTitleSlugs
-
-		# Запись в лог сообщения: заголовог парсинга.
-		logging.info("====== Parcing ======")
-
-		# Парсинг обновлённых тайтлов.
-		for Slug in UpdatedTitlesList:
-			# Инкремент текущего индекса.
-			CurrentTitleIndex += 1
-			# Генерация сообщения.
-			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(CurrentTitleIndex) + " / " + str(len(UpdatedTitlesList)) + "\n"
-			# Парсинг тайтла.
-			LocalTitle = TitleParser(Settings, Navigator, Slug, ForceMode = IsForceModeActivated, Message = ExternalMessage)
-			# Загрузка обложек.
-			LocalTitle.downloadCover()
-			# Сохранение локальных файлов тайтла.
-			LocalTitle.save()
+	# Запись в лог сообщения: заголовог парсинга.
+	logging.info("====== Parcing ======")
+		
+	# Спарсить каждый тайтл из списка.
+	for Index in range(StartSlugIndex, len(TitlesList)):
+		# Часть сообщения о прогрессе.
+		InFuncMessage_Progress = "Updating titles: " + str(Index + 1) + " / " + str(len(TitlesList)) + "\n"
+		# Генерация сообщения.
+		ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + InFuncMessage_Progress
+		# Парсинг тайтла.
+		LocalTitle = TitleParser(Settings, Navigator, TitlesList[Index], ForceMode = IsForceModeActivated, Message = ExternalMessage)
+		# Загружает обложку тайтла.
+		LocalTitle.downloadCover()
+		# Сохранение локальных файлов тайтла.
+		LocalTitle.save()
 
 #==========================================================================================#
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #
