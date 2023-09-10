@@ -64,20 +64,27 @@ class TitleParser:
 								}}
 								Slide.src = "{SlideLink}";
 							'''
-							# Получение разрешения слайда.
-							SlideResolution = self.__Navigator.executeAsyncJavaScript(Script)
+							
+							try:
+								# Получение разрешения слайда.
+								SlideResolution = self.__Navigator.executeAsyncJavaScript(Script)
+								
+							except TimeoutError:
+								# Запись в лог ошибки: не удалось определить размер слайда.
+								logging.error(f"Unable to sizing slide {SlideIndex + 1}.")
+							
+							else:
+								# Проверка успешности получения ширины слайда.
+								if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
+									self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["width"] = int(SlideResolution.split('/')[0])
 
-							# Проверка успешности получения ширины слайда.
-							if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
-								self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["width"] = int(SlideResolution.split('/')[0])
-
-							# Проверка успешности получения разрешения.
-							if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
-								self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
+								# Проверка успешности получения разрешения.
+								if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
+									self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
 								
 						else:
 							# Запись в лог предупреждения: слайд является видео.
-							logging.warning("Title: \"" + self.__Slug + f"\". Slide {SlideIndex} is MP4 video.")
+							logging.warning("Title: \"" + self.__Slug + f"\". Slide {SlideIndex + 1} is MP4 video.")
 
 		# Запись в лог сообщения: количество дополненных глав.
 		logging.info("Title: \"" + self.__Slug + "\". Amended chapters: " + str(AmendedChaptersCount) + ".")
