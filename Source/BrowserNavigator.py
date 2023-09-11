@@ -101,11 +101,13 @@ class BrowserNavigator:
 		return BodyHTML
 
 	# Выполняет переход на указанную страницу.
-	def loadPage(self, URL: str):
+	def loadPage(self, URL: str) -> int:
 		# Состояние: выполняются ли условия перехода по URL.
 		LoadCondition = True
 		# Состояние: загружена ли страница.
 		IsLoaded = False
+		# Статус ответа.
+		StatusCode = None
 
 		# Проверка условия перехода: браузер находится на той же странице.
 		if self.__Browser.current_url == URL:
@@ -126,10 +128,18 @@ class BrowserNavigator:
 				try:
 					# Переход на страницу.
 					self.__Browser.get(URL)
+					# Установка статуса запроса.
+					StatusCode = 200
+					
+					# Если страница содержит сообщение об ошибочной ссылке.
+					if "Это ошибочная ссылка." in self.getBodyHTML():
+						StatusCode = 404
 					
 				except Exception as ExceptionDescription:
 					# Сохранение только первой строки исключения.
 					ExceptionDescription = str(ExceptionDescription).split('\n')[0].strip(" \n.\t")
+					# Установка статуса запроса.
+					StatusCode = 408
 					# Инкремент количества повторов.
 					TriesCount += 1
 					# Запись в лог ошибки: содержимое ошибки.
@@ -146,3 +156,5 @@ class BrowserNavigator:
 				else:
 					# Переключение статуса загрузки страницы.
 					IsLoaded = True
+					
+		return StatusCode

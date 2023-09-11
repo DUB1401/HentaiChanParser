@@ -448,45 +448,54 @@ class TitleParser:
 		# URL всех глав тайтла или похожих тайтлов.
 		TitleURL = "https://hentaichan.live/related/" + self.__Slug + ".html"
 		# Переход на страницу всех глав тайтла или похожих тайтлов.
-		self.__Navigator.loadPage(TitleURL)
-		# HTML код тела страницы после полной загрузки.
-		PageHTML = self.__Navigator.getBodyHTML()
+		StatusCode = self.__Navigator.loadPage(TitleURL)
 		
-		# Если у тайтла одна глава.
-		if "Хентай похожий на" in str(PageHTML):
-			# Запись URL единственной главы.
-			ChaptersList.append(self.__Slug)
+		# Если запрос успешен.
+		if StatusCode == 200:
+			# HTML код тела страницы после полной загрузки.
+			PageHTML = self.__Navigator.getBodyHTML()
+		
+			# Если у тайтла одна глава.
+			if "Хентай похожий на" in str(PageHTML):
+				# Запись URL единственной главы.
+				ChaptersList.append(self.__Slug)
 			
-		# Если у тайтла больше одной главы.
-		else:
-			# Количество страниц в каталоге глав тайтла.
-			RelatedPagesCount = self.__GetRelatedPagesCount()
+			# Если у тайтла больше одной главы.
+			else:
+				# Количество страниц в каталоге глав тайтла.
+				RelatedPagesCount = self.__GetRelatedPagesCount()
 			
-			# Получение URL глав с каждой страницы.
-			for PageNumber in range(0, RelatedPagesCount):
-				# Переход на страницу тайтла.
-				self.__Navigator.loadPage("https://hentaichan.live/related/" + self.__Slug + ".html?offset=" + str(10 * PageNumber))
-				# HTML код тела страницы после полной загрузки.
-				PageHTML = self.__Navigator.getBodyHTML()
-				# Парсинг HTML кода тела страницы.
-				Soup = BeautifulSoup(PageHTML, "html.parser")
-				# Поиск блоков с информацией о главах.
-				ChaptersBlocks = Soup.find_all("div", {"class": "related_info"})
+				# Получение URL глав с каждой страницы.
+				for PageNumber in range(0, RelatedPagesCount):
+					# Переход на страницу тайтла.
+					self.__Navigator.loadPage("https://hentaichan.live/related/" + self.__Slug + ".html?offset=" + str(10 * PageNumber))
+					# HTML код тела страницы после полной загрузки.
+					PageHTML = self.__Navigator.getBodyHTML()
+					# Парсинг HTML кода тела страницы.
+					Soup = BeautifulSoup(PageHTML, "html.parser")
+					# Поиск блоков с информацией о главах.
+					ChaptersBlocks = Soup.find_all("div", {"class": "related_info"})
 				
-				# Для каждой главы получить алиас.
-				for Chapter in ChaptersBlocks:
-					# Парсинг HTML блока с информацией о главе.
-					SmallSoup = BeautifulSoup(str(Chapter), "html.parser")
-					# Поиск заголовка главы.
-					Header = SmallSoup.find("h2")
-					# Парсинг заголовка названия главы.
-					SmallSoup = BeautifulSoup(str(Header), "html.parser")
-					# Поиск ссылки на главу.
-					CapterLink = SmallSoup.find("a")
+					# Для каждой главы получить алиас.
+					for Chapter in ChaptersBlocks:
+						# Парсинг HTML блока с информацией о главе.
+						SmallSoup = BeautifulSoup(str(Chapter), "html.parser")
+						# Поиск заголовка главы.
+						Header = SmallSoup.find("h2")
+						# Парсинг заголовка названия главы.
+						SmallSoup = BeautifulSoup(str(Header), "html.parser")
+						# Поиск ссылки на главу.
+						CapterLink = SmallSoup.find("a")
 
-					# Если HTML ссылка найдена, и у неё есть адрес, то получить полный алиас.
-					if CapterLink != None and CapterLink.has_attr("href"):
-						ChaptersList.append(CapterLink["href"].replace("/manga/", "").replace(".html", ""))
+						# Если HTML ссылка найдена, и у неё есть адрес, то получить полный алиас.
+						if CapterLink != None and CapterLink.has_attr("href"):
+							ChaptersList.append(CapterLink["href"].replace("/manga/", "").replace(".html", ""))
+							
+		else:
+			# Запись в лог предупреждения: тайтл не найден.
+			logging.warning("Title: \"" + self.__Slug + "\". Not found. Skipped.")
+			# Перевод тайтла в неактивный статус.
+			self.__IsActive = False
 
 		return ChaptersList
 
@@ -566,63 +575,71 @@ class TitleParser:
 		# URL тайтла.
 		TitleURL = "https://hentaichan.live/manga/" + self.__Slug + ".html"
 		# Переход на страницу тайтла.
-		self.__Navigator.loadPage(TitleURL)
-		# HTML код тела страницы после полной загрузки.
-		PageHTML = self.__Navigator.getBodyHTML()
-		# Парсинг HTML кода тела страницы.
-		Soup = BeautifulSoup(PageHTML, "html.parser")
-		# Поиск HTML элемента названия тайтла.
-		TitleName = Soup.find("a", {"class": "title_top_a"}).get_text()
-		# Структура названия главы: русское, английское и другие.
-		ParcedTitleName = self.__ParceTitleName(TitleName)
-		# Поиск HTML элемента описания.
-		DescriptionHTML = Soup.find("div", {"id": "description"})
-		# Описание тайтла.
-		Description = None
-		# Получение структур жанров и тегов.
-		Tags = self.__GetTags(PageHTML)
-
-		# Проверка наличия описания.
-		if DescriptionHTML != None:
-
-			# Удаление вложенных блоков из описания.
-			for Block in DescriptionHTML.select("div"):
-				Block.decompose()
-
-			# Замена тегов на спецсимволы новой строки.
-			DescriptionHTML = BeautifulSoup(str(DescriptionHTML).replace("<br/>", "\n"), "html.parser")
-			# Получение оставшегося текста без краевых спецсимволов и пробелов.
-			Description = DescriptionHTML.get_text().strip("\n \t")
-			# Удаление повторяющихся символов новой строки.
-			RemoveRecurringSubstrings(Description, '\n')
-			# Если описание пустое, то обнулить его.
-			if Description == "":
-				Description = None
+		StatusCode = self.__Navigator.loadPage(TitleURL)
 		
-		# Заполнение полей описательной структуры.
-		self.__Title["site"] = "hentaichan.live"
-		self.__Title["id"] = self.__ID
-		self.__Title["slug"] = self.__Slug
-		self.__Title["covers"] = self.__GetCoverData(PageHTML)
-		self.__Title["ru-name"] = ParcedTitleName["ru-name"]
-		self.__Title["en-name"] = ParcedTitleName["en-name"]
-		self.__Title["another-names"] = ParcedTitleName["another-names"]
-		self.__Title["author"] = self.__GetAuthor(Soup)
-		self.__Title["publication-year"]
-		self.__Title["age-rating"] = 18
-		self.__Title["description"] = Description
-		self.__Title["type"] = "UNKNOWN"
-		self.__Title["status"] = "UNKNOWN"
-		self.__Title["is-licensed"] = False
-		self.__Title["series"] = self.__GetSeries(Soup)
-		self.__Title["genres"] = list()
-		self.__Title["tags"] = Tags
+		# Если запрос успешен.
+		if StatusCode == 200:
+			# HTML код тела страницы после полной загрузки.
+			PageHTML = self.__Navigator.getBodyHTML()
+			# Парсинг HTML кода тела страницы.
+			Soup = BeautifulSoup(PageHTML, "html.parser")
+			# Поиск HTML элемента названия тайтла.
+			TitleName = Soup.find("a", {"class": "title_top_a"}).get_text()
+			# Структура названия главы: русское, английское и другие.
+			ParcedTitleName = self.__ParceTitleName(TitleName)
+			# Поиск HTML элемента описания.
+			DescriptionHTML = Soup.find("div", {"id": "description"})
+			# Описание тайтла.
+			Description = None
+			# Получение структур жанров и тегов.
+			Tags = self.__GetTags(PageHTML)
 
-		# Форматирование указанных настройками тегов в жанры.
-		self.__FindGenres()
+			# Проверка наличия описания.
+			if DescriptionHTML != None:
 
-		# Запись в лог сообщения: получено описание тайтла.
-		logging.info("Title: \"" + self.__Slug + "\". Request title description... Done.")
+				# Удаление вложенных блоков из описания.
+				for Block in DescriptionHTML.select("div"):
+					Block.decompose()
+
+				# Замена тегов на спецсимволы новой строки.
+				DescriptionHTML = BeautifulSoup(str(DescriptionHTML).replace("<br/>", "\n"), "html.parser")
+				# Получение оставшегося текста без краевых спецсимволов и пробелов.
+				Description = DescriptionHTML.get_text().strip("\n \t")
+				# Удаление повторяющихся символов новой строки.
+				RemoveRecurringSubstrings(Description, '\n')
+				# Если описание пустое, то обнулить его.
+				if Description == "":
+					Description = None
+		
+			# Заполнение полей описательной структуры.
+			self.__Title["site"] = "hentaichan.live"
+			self.__Title["id"] = self.__ID
+			self.__Title["slug"] = self.__Slug
+			self.__Title["covers"] = self.__GetCoverData(PageHTML)
+			self.__Title["ru-name"] = ParcedTitleName["ru-name"]
+			self.__Title["en-name"] = ParcedTitleName["en-name"]
+			self.__Title["another-names"] = ParcedTitleName["another-names"]
+			self.__Title["author"] = self.__GetAuthor(Soup)
+			self.__Title["publication-year"]
+			self.__Title["age-rating"] = 18
+			self.__Title["description"] = Description
+			self.__Title["type"] = "UNKNOWN"
+			self.__Title["status"] = "UNKNOWN"
+			self.__Title["is-licensed"] = False
+			self.__Title["series"] = self.__GetSeries(Soup)
+			self.__Title["genres"] = list()
+			self.__Title["tags"] = Tags
+
+			# Форматирование указанных настройками тегов в жанры.
+			self.__FindGenres()
+			# Запись в лог сообщения: получено описание тайтла.
+			logging.info("Title: \"" + self.__Slug + "\". Request title description... Done.")
+			
+		else:
+			# Запись в лог предупреждения: тайтл не найден.
+			logging.warning("Title: \"" + self.__Slug + "\". Not found. Skipped.")
+			# Перевод тайтла в неактивный статус.
+			self.__IsActive = False
 
 	# Возвращает суммарное количество глав во всех ветвях.
 	def __GetTotalChaptersCount(self) -> int:
@@ -856,6 +873,8 @@ class TitleParser:
 		self.__Settings = Settings.copy()
 		# Обработчик навигации экземпляра браузера.
 		self.__Navigator = Navigator
+		# Состояние: доступен ли тайтл.
+		self.__IsActive = True
 		# Описательная структура тайтла.
 		self.__Title = {
 			"format": "dmp-v1",
@@ -900,10 +919,10 @@ class TitleParser:
 		self.__GetTitleData()
 		
 		# Если включена полная обработка файла.
-		if Amending == True:
+		if Amending == True and self.__IsActive == True:
 			# Получение данных глав тайтла.
 			self.__GetChaptersData()
-
+			
 			# Если включён режим перезаписи.
 			if ForceMode == False:
 
@@ -919,117 +938,124 @@ class TitleParser:
 
 	# Загружает обложку тайтла.
 	def downloadCover(self):
-		# Счётчик загруженных обложек.
-		DownloadedCoversCounter = 0
-		# Используемое имя тайтла: ID или алиас.
-		UsedTitleName = None
-		# Очистка консоли.
-		Cls()
-		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
-		print(self.__Message, end = "")
-		
-		# Создание директории обложек, если таковая отсутствует.
-		if os.path.exists(self.__Settings["covers-directory"]) == False:
-			os.makedirs(self.__Settings["covers-directory"])
-
-		# Установка используемого имени тайтла.
-		if self.__Settings["use-id-instead-slug"] == False:
-			UsedTitleName = self.__Slug
 			
-		else:
-			UsedTitleName = str(self.__ID)
+		# Если удалось получить доступ к тайтлу.
+		if self.__IsActive == True:
+			# Счётчик загруженных обложек.
+			DownloadedCoversCounter = 0
+			# Используемое имя тайтла: ID или алиас.
+			UsedTitleName = None
+			# Очистка консоли.
+			Cls()
+			# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
+			print(self.__Message, end = "")
+		
+			# Создание директории обложек, если таковая отсутствует.
+			if os.path.exists(self.__Settings["covers-directory"]) == False:
+				os.makedirs(self.__Settings["covers-directory"])
 
-		# Для каждой обложки.
-		for CoverIndex in range(0, len(self.__Title["covers"])):
-			# URL обложки.
-			CoverURL = self.__Title["covers"][CoverIndex]["link"]
-			# Название файла обложки.
-			CoverFilename = self.__Title["covers"][CoverIndex]["filename"]
-			# Ответ запроса.
-			Response = None
+			# Установка используемого имени тайтла.
+			if self.__Settings["use-id-instead-slug"] == False:
+				UsedTitleName = self.__Slug
+			
+			else:
+				UsedTitleName = str(self.__ID)
 
-			# Если включён режим перезаписи, то удалить файл обложки.
-			if self.__ForceMode == True:
+			# Для каждой обложки.
+			for CoverIndex in range(0, len(self.__Title["covers"])):
+				# URL обложки.
+				CoverURL = self.__Title["covers"][CoverIndex]["link"]
+				# Название файла обложки.
+				CoverFilename = self.__Title["covers"][CoverIndex]["filename"]
+				# Ответ запроса.
+				Response = None
+
+				# Если включён режим перезаписи, то удалить файл обложки.
+				if self.__ForceMode == True:
 					
-				# Удалить файл обложки.
-				if os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
-					shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug) 
-				elif os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
-					shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID)) 
+					# Удалить файл обложки.
+					if os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
+						shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug) 
+					elif os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
+						shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID)) 
 
-			# Удаление папки для обложек с алиасом в названии, если используется ID.
-			if self.__Settings["use-id-instead-slug"] == True and os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
-				shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug)
+				# Удаление папки для обложек с алиасом в названии, если используется ID.
+				if self.__Settings["use-id-instead-slug"] == True and os.path.exists(self.__Settings["covers-directory"] + self.__Slug + "/" + CoverFilename):
+					shutil.rmtree(self.__Settings["covers-directory"] + self.__Slug)
 
-			# Удаление папки для обложек с ID в названии, если используется алиас.
-			if self.__Settings["use-id-instead-slug"] == False and os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
-				shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID))
+				# Удаление папки для обложек с ID в названии, если используется алиас.
+				if self.__Settings["use-id-instead-slug"] == False and os.path.exists(self.__Settings["covers-directory"] + str(self.__ID) + "/" + CoverFilename):
+					shutil.rmtree(self.__Settings["covers-directory"] + str(self.__ID))
 
-			# Проверка существования файла обложки.
-			if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename) == False:
-				# Вывод в терминал URL загружаемой обложки.
-				print("Downloading cover: \"" + CoverURL + "\"... ", end = "")
-				# Выполнение запроса.
-				Response = requests.get(CoverURL)
+				# Проверка существования файла обложки.
+				if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename) == False:
+					# Вывод в терминал URL загружаемой обложки.
+					print("Downloading cover: \"" + CoverURL + "\"... ", end = "")
+					# Выполнение запроса.
+					Response = requests.get(CoverURL)
 
-				# Проверка успешности запроса.
-				if Response.status_code == 200:
+					# Проверка успешности запроса.
+					if Response.status_code == 200:
 
-					# Создание папки для обложек.
-					if os.path.exists(self.__Settings["covers-directory"]) == False:
-						os.makedirs(self.__Settings["covers-directory"])
+						# Создание папки для обложек.
+						if os.path.exists(self.__Settings["covers-directory"]) == False:
+							os.makedirs(self.__Settings["covers-directory"])
 
-					# Создание папки для конкретной обложки.
-					if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName) == False:
-						os.makedirs(self.__Settings["covers-directory"] + UsedTitleName)
+						# Создание папки для конкретной обложки.
+						if os.path.exists(self.__Settings["covers-directory"] + UsedTitleName) == False:
+							os.makedirs(self.__Settings["covers-directory"] + UsedTitleName)
 
-					# Открытие потока записи.
-					with open(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename, "wb") as FileWrite:
-						# Запись изображения.
-						FileWrite.write(Response.content)
-						# Инкремент счётчика загруженных обложек.
-						DownloadedCoversCounter += 1
+						# Открытие потока записи.
+						with open(self.__Settings["covers-directory"] + UsedTitleName + "/" + CoverFilename, "wb") as FileWrite:
+							# Запись изображения.
+							FileWrite.write(Response.content)
+							# Инкремент счётчика загруженных обложек.
+							DownloadedCoversCounter += 1
+							# Вывод в терминал сообщения об успешной загрузке.
+							print("Done.")
+
+					else:
+						# Запись в лог сообщения о неудачной попытке загрузки обложки.
+						logging.error("Title: \"" + self.__Slug + "\". Unable download cover: \"" + CoverURL + "\". Response code: " + str(Response.status_code) + ".")
 						# Вывод в терминал сообщения об успешной загрузке.
-						print("Done.")
+						print("Failure!")
 
 				else:
-					# Запись в лог сообщения о неудачной попытке загрузки обложки.
-					logging.error("Title: \"" + self.__Slug + "\". Unable download cover: \"" + CoverURL + "\". Response code: " + str(Response.status_code) + ".")
-					# Вывод в терминал сообщения об успешной загрузке.
-					print("Failure!")
+					# Вывод в терминал: URL загружаемой обложки.
+					print("Cover already exist: \"" + CoverURL + "\". Skipped. ")
 
-			else:
-				# Вывод в терминал: URL загружаемой обложки.
-				print("Cover already exist: \"" + CoverURL + "\". Skipped. ")
-
-		# Запись в лог сообщения: количество загруженных обложек.
-		logging.info("Title: \"" + self.__Slug + "\". Covers downloaded: " + str(DownloadedCoversCounter) + ".")
+			# Запись в лог сообщения: количество загруженных обложек.
+			logging.info("Title: \"" + self.__Slug + "\". Covers downloaded: " + str(DownloadedCoversCounter) + ".")
 
 	# Сохраняет локальный JSON файл.
 	def save(self):
-		# Используемое имя тайтла: ID или алиас.
-		UsedTitleName = None
+		
+		# Если удалось получить доступ к тайтлу.
+		if self.__IsActive == True:
+			# Используемое имя тайтла: ID или алиас.
+			UsedTitleName = None
 
-		# Создание директории тайтлов, если таковая отсутствует.
-		if os.path.exists(self.__Settings["titles-directory"]) == False:
-			os.makedirs(self.__Settings["titles-directory"])
+			# Создание директории тайтлов, если таковая отсутствует.
+			if os.path.exists(self.__Settings["titles-directory"]) == False:
+				os.makedirs(self.__Settings["titles-directory"])
 
-		# Установка используемого имени тайтла.
-		if self.__Settings["use-id-instead-slug"] == False:
-			UsedTitleName = self.__Title["slug"]
-		else:
-			UsedTitleName = str(self.__ID)
+			# Установка используемого имени тайтла.
+			if self.__Settings["use-id-instead-slug"] == False:
+				UsedTitleName = self.__Title["slug"]
+			else:
+				UsedTitleName = str(self.__ID)
 
-		# Инициализация конвертера.
-		FormatterObject = Formatter(self.__Settings, self.__Title, "dmp-v1")
-		FormattedTitle = FormatterObject.convert(self.__Settings["format"])
+			# Инициализация конвертера.
+			FormatterObject = Formatter(self.__Settings, self.__Title, "dmp-v1")
+			FormattedTitle = FormatterObject.convert(self.__Settings["format"])
 
-		# Сохранение локального файла JSON.
-		with open(self.__Settings["titles-directory"] + UsedTitleName + ".json", "w", encoding = "utf-8") as FileWrite:
-			json.dump(FormattedTitle, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
+			# Сохранение локального файла JSON.
+			with open(self.__Settings["titles-directory"] + UsedTitleName + ".json", "w", encoding = "utf-8") as FileWrite:
+				json.dump(FormattedTitle, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
 
 			# Запись в лог сообщения: создан или обновлён локальный файл.
 			if self.__MergedChaptersCount > 0:
 				logging.info("Title: \"" + self.__Slug + "\". Updated.")
+				
 			else:
 				logging.info("Title: \"" + self.__Slug + "\". Parced.")
