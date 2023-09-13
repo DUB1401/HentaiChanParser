@@ -39,6 +39,17 @@ class TitleParser:
 					ChapterSlug = self.__FindChapterSlugInList(self.__Title["chapters"][BranchID][ChapterIndex]["id"])
 					# Получение данных о слайдах.
 					self.__Title["chapters"][BranchID][ChapterIndex]["slides"] = self.__GetChapterSlides(ChapterSlug)
+					# Состояние: повторять ли запрос данных.
+					RepeatRequest = False
+					
+					# Проверить каждый слайд на отсутствие ссылки
+					for Slide in self.__Title["chapters"][BranchID][ChapterIndex]["slides"]:
+						if Slide["link"] == None and RepeatRequest == False:
+							# Проведение повторного запроса данных.
+							self.__Title["chapters"][BranchID][ChapterIndex]["slides"] = self.__GetChapterSlides(ChapterSlug)
+							# Запись в лог предупреждения: повторный запрос данных о главе.
+							logging.warning("Title: \"" + self.__Slug + "\". Unable to find slide data. Repeat request... ")
+
 					# Инкремент количества дополненных глав.
 					AmendedChaptersCount += 1
 					# Запись в лог сообщения: глава дополнена.
@@ -53,7 +64,7 @@ class TitleParser:
 						SlideLink = self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["link"]
 						
 						# Если ссылка на слайд заканчивается расширением MP4.
-						if SlideLink.endswith(".mp4") == False:
+						if SlideLink != None and SlideLink.endswith(".mp4") == False:
 
 							# Скрипт определения разрешения слайда.
 							Script = f'''
@@ -82,7 +93,7 @@ class TitleParser:
 								if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
 									self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
 								
-						else:
+						elif SlideLink != None:
 							# Запись в лог предупреждения: слайд является видео.
 							logging.warning("Title: \"" + self.__Slug + f"\". Slide {SlideIndex + 1} is MP4 video.")
 
@@ -411,6 +422,7 @@ class TitleParser:
 				# Если слайд не является ни изображением, ни видео.
 				if SlideBlock != None:
 					SlideInfo["link"] = SlideBlock["src"]
+					
 				else:
 					# Обнуление ссылки.
 					SlideInfo["link"] = None
