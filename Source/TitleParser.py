@@ -508,6 +508,10 @@ class TitleParser:
 			logging.warning("Title: \"" + self.__Slug + "\". Not found. Skipped.")
 			# Перевод тайтла в неактивный статус.
 			self.__IsActive = False
+			
+		# Если не удалось обнаружить главы, добавить оригинальный алиас.
+		if len(ChaptersList) == 0:
+			ChaptersList.append(self.__Slug)
 
 		return ChaptersList
 
