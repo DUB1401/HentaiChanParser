@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from dublib.Methods import Cls, Shutdown, WriteJSON, ReadJSON
+from dublib.Methods import Cls, CheckPythonMinimalVersion, MakeRootDirectories, Shutdown, WriteJSON, ReadJSON
 from Source.BrowserNavigator import BrowserNavigator
 from Source.Functions import SecondsToTimeString
 from Source.TitleParser import TitleParser
@@ -10,28 +10,23 @@ from dublib.Terminalyzer import *
 
 import datetime
 import logging
-import json
+import urllib3
 import time
 import sys
 import os
 
 #==========================================================================================#
-# >>>>> ПРОВЕРКА ВЕРСИИ PYTHON <<<<< #
+# >>>>> ИНИЦИАЛИЗАЦИЯ СКРИПТА <<<<< #
 #==========================================================================================#
 
-# Минимальная требуемая версия Python.
-PythonMinimalVersion = (3, 10)
-# Проверка соответствия.
-if sys.version_info < PythonMinimalVersion:
-	sys.exit("Python %s.%s or later is required.\n" % PythonMinimalVersion)
+# Проверка поддержки используемой версии Python.
+CheckPythonMinimalVersion(3, 10)
+# Создание папок в корневой директории.
+MakeRootDirectories(["Logs"])
 
 #==========================================================================================#
-# >>>>> ИНИЦИАЛИЗАЦИЯ ЛОГГИРОВАНИЯ <<<<< #
+# >>>>> НАСТРОЙКА ЛОГГИРОВАНИЯ <<<<< #
 #==========================================================================================#
-
-# Если нет папки для логов, то создать.
-if os.path.isdir("Logs") == False:
-	os.makedirs("Logs")
 
 # Получение текущей даты.
 CurrentDate = datetime.datetime.now()
@@ -55,14 +50,16 @@ logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 logging.info("====== Preparing to starting ======")
 # Запись в лог используемой версии Python.
 logging.info("Starting with Python " + str(sys.version_info.major) + "." + str(sys.version_info.minor) + "." + str(sys.version_info.micro) + " on " + str(sys.platform) + ".")
-# Запись времени начала работы скрипта.
-logging.info("Script started at " + str(CurrentDate)[:-7] + ".")
 # Запись команды, использовавшейся для запуска скрипта.
 logging.info("Launch command: \"" + " ".join(sys.argv[1:len(sys.argv)]) + "\".")
 # Расположении папки установки веб-драйвера в директории скрипта.
 os.environ["WDM_LOCAL"] = "1"
 # Отключение логов WebDriver.
 os.environ["WDM_LOG"] = str(logging.NOTSET)
+# Отключение проверки SSL WebDriver.
+os.environ["WDM_SSL_VERIFY"] = "0"
+# Отключение предупреждения об отсутствии верификации SSL.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Очистка консоли.
 Cls()
 # Чтение настроек.
@@ -122,13 +119,13 @@ COM_getcov.addFlagPosition(["s"])
 CommandsList.append(COM_getcov)
 
 # Создание команды: parce.
-COM_parce = Command("parce")
-COM_parce.addArgument(ArgumentType.All, Important = True, LayoutIndex = 1)
-COM_parce.addFlagPosition(["collection"], Important = True, LayoutIndex = 1)
-COM_parce.addFlagPosition(["f"])
-COM_parce.addFlagPosition(["s"])
-COM_parce.addKeyPosition(["from"], ArgumentType.All)
-CommandsList.append(COM_parce)
+COM_parse = Command("parse")
+COM_parse.addArgument(ArgumentType.All, Important = True, LayoutIndex = 1)
+COM_parse.addFlagPosition(["collection"], Important = True, LayoutIndex = 1)
+COM_parse.addFlagPosition(["f"])
+COM_parse.addFlagPosition(["s"])
+COM_parse.addKeyPosition(["from"], ArgumentType.All)
+CommandsList.append(COM_parse)
 
 # Создание команды: update.
 COM_update = Command("update")
@@ -184,9 +181,9 @@ if "s" in CommandDataStruct.Flags:
 	# Включение режима.
 	IsShutdowAfterEnd = True
 	# Запись в лог сообщения о том, что ПК будет выключен после завершения работы.
-	logging.info("Computer will be turned off after the parser is finished!")
+	logging.info("Computer will be turned off after the script is finished!")
 	# Установка сообщения для внутренних функций.
-	InFuncMessage_Shutdown = "Computer will be turned off after the parser is finished!\n"
+	InFuncMessage_Shutdown = "Computer will be turned off after the script is finished!\n"
 
 #==========================================================================================#
 # >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
@@ -196,7 +193,7 @@ if "s" in CommandDataStruct.Flags:
 Navigator = None
 
 # Если потребуется браузер.
-if CommandDataStruct.Name in ["collect", "getcov", "parce", "update"]:
+if CommandDataStruct.Name in ["collect", "getcov", "parse", "update"]:
 	Navigator = BrowserNavigator(Settings)
 
 #==========================================================================================#
@@ -259,8 +256,8 @@ if "getcov" == CommandDataStruct.Name:
 	# Сохранение локальных файлов тайтла.
 	LocalTitle.downloadCover()
 
-# Обработка команды: parce.
-if "parce" == CommandDataStruct.Name:
+# Обработка команды: parse.
+if "parse" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
 	logging.info("====== Parcing ======")
 	# Список тайтлов для парсинга.
@@ -466,7 +463,7 @@ Cls()
 # Время завершения работы скрипта.
 EndTime = time.time()
 # Запись времени завершения работы скрипта.
-logging.info("Script finished at " + str(datetime.datetime.now())[:-7] + ". Execution time: " + SecondsToTimeString(EndTime - StartTime) + ".")
+logging.info("Script finished. Execution time: " + SecondsToTimeString(EndTime - StartTime) + ".")
 
 # Выключение ПК, если установлен соответствующий флаг.
 if IsShutdowAfterEnd == True:
