@@ -23,6 +23,7 @@
 		"юри": null,
 		"яой": null
 	},
+	"adblock": false,
 	"retry-tries": 3,
 	"debug": false
 }

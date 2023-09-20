@@ -6,7 +6,7 @@
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
 3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
 ```
-pip install git+https://github.com/DUB1401/dublib#egg=dublib
+git+https://github.com/DUB1401/dublib.git
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
@@ -119,6 +119,11 @@ ___
 В данном разделе можно указать список тегов, которые будут помечены как жанры, а также, при необходимости, задать для них новые названия. Переопределённые теги удаляются из оригинального списка.
 ___
 ```JSON
+"adblock": false
+```
+Позволяет включить расширение [AdBlock Plus](https://gitlab.com/eyeo/adblockplus/abc/webext-ad-filtering-solution), что может ускорить обработку некоторых страниц [HentaiChan](https://hentaichan.live).
+___
+```JSON
 "retry-tries": 3
 ```
 Указывает, сколко раз проводить повторные попытки при ошибке загрузки страницы.
@@ -127,5 +132,8 @@ ___
 "debug": false
 ```
 Переключает отображение окна браузера во время загрузки страниц через [Selenium](https://github.com/SeleniumHQ/selenium).
+
+# Благодарность
+* [AdBlock Plus](https://gitlab.com/eyeo/adblockplus/abc/webext-ad-filtering-solution) – расширение для браузеров, блокирующее рекламу и вспылвающие окна (в модификации [DUB1401](https://github.com/DUB1401): _отключена страница приветствия_).
 
 _Copyright © DUB1401. 2022-2023._

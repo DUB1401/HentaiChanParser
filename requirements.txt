@@ -1,4 +1,4 @@
-git+https://github.com/DUB1401/dublib#egg=dublib
+git+https://github.com/DUB1401/dublib.git
 webdriver_manager
 BeautifulSoup4
 PyEnchant

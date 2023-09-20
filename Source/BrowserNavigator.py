@@ -11,8 +11,13 @@ class BrowserNavigator:
 	def __InitializeWebDriver(self):
 		# Закрытие браузера.
 		self.close()
-		# Опции веб-драйвера.
+		# Опции веб-браузера.
 		ChromeOptions = Options()
+		
+		# Если указано настройками, включить AdBlock.
+		if self.__Settings["adblock"] == True:
+			ChromeOptions.add_extension('Libs/AdBlock.crx')
+
 		# Установка опций.
 		ChromeOptions.add_argument("--no-sandbox")
 		ChromeOptions.add_argument("--disable-dev-shm-usage")
