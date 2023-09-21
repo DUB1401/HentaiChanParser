@@ -34,7 +34,7 @@ CurrentDate = datetime.datetime.now()
 StartTime = time.time()
 # Формирование пути к файлу лога.
 LogFilename = "Logs/" + str(CurrentDate)[:-7] + ".log"
-LogFilename = LogFilename.replace(':', '-')
+LogFilename = LogFilename.replace(":", "-")
 # Установка конфигнурации.
 logging.basicConfig(filename = LogFilename, encoding = "utf-8", level = logging.INFO, format = "%(asctime)s %(levelname)s: %(message)s", datefmt = "%Y-%m-%d %H:%M:%S")
 # Отключение части сообщений логов библиотеки requests.
@@ -118,7 +118,7 @@ COM_getcov.addFlagPosition(["f"])
 COM_getcov.addFlagPosition(["s"])
 CommandsList.append(COM_getcov)
 
-# Создание команды: parce.
+# Создание команды: parse.
 COM_parse = Command("parse")
 COM_parse.addArgument(ArgumentType.All, Important = True, LayoutIndex = 1)
 COM_parse.addFlagPosition(["collection"], Important = True, LayoutIndex = 1)
@@ -250,7 +250,7 @@ if "convert" == CommandDataStruct.Name:
 # Обработка команды: getcov.
 if "getcov" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
-	logging.info("====== Parcing ======")
+	logging.info("====== Parsing ======")
 	# Парсинг тайтла.
 	LocalTitle = TitleParser(Settings, Navigator, CommandDataStruct.Arguments[0], ForceMode = IsForceModeActivated, Message = InFuncMessage_Shutdown + InFuncMessage_ForceMode, Amending = False)
 	# Сохранение локальных файлов тайтла.
@@ -259,7 +259,7 @@ if "getcov" == CommandDataStruct.Name:
 # Обработка команды: parse.
 if "parse" == CommandDataStruct.Name:
 	# Запись в лог сообщения: заголовок парсинга.
-	logging.info("====== Parcing ======")
+	logging.info("====== Parsing ======")
 	# Список тайтлов для парсинга.
 	TitlesList = list()
 	# Индекс стартового алиаса.
@@ -270,13 +270,11 @@ if "parse" == CommandDataStruct.Name:
 		
 		# Если существует файл коллекции.
 		if os.path.exists("Collection.txt"):
-			# Индекс обрабатываемого тайтла.
-			CurrentTitleIndex = 0
 			
 			# Чтение содржимого файла.
 			with open("Collection.txt", "r") as FileReader:
 				# Буфер чтения.
-				Bufer = FileReader.read().split('\n')
+				Bufer = FileReader.read().split("\n")
 				
 				# Поместить алиасы в список на парсинг, если строка не пуста.
 				for Slug in Bufer:
@@ -365,8 +363,6 @@ if "update" == CommandDataStruct.Name:
 		UpdateChecker = Updater(Settings, Navigator)
 		# Получение списка обновлённых тайтлов.
 		TitlesList = UpdateChecker.getUpdatesList()
-		# Индекс обрабатываемого тайтла.
-		CurrentTitleIndex = 0
 		# Запись в лог сообщения: количество найденных за указанный период обновлений.
 		logging.info("Titles found for update period: " + str(len(TitlesList)) + ".")
 	
@@ -385,55 +381,24 @@ if "update" == CommandDataStruct.Name:
 			logging.warning("Unable to find start slug in \"Collection.txt\". All titles skipped.")
 			# Задать стартовый индекс, равный количеству алиасов.
 			StartSlugIndex = len(TitlesList)
-		
-
-	
-
-		# Старт с указанного тайтла.
-		if FromTitle != None:
-			# Запись в лог сообщения: стартовый тайтл обновления.
-			logging.info("Updating starts from title with slug: \"" + FromTitle + "\".")
-			# Буферный список тайтлов.
-			BuferTitleSlugs = list()
-			# Состояние: записывать ли тайтлы.
-			IsWriteSlugs = False
-				
-			# Перебор тайтлов.
-			for Slug in TitlesSlugs:
-					
-				# Если обнаружен стартовый тайтл, то включить запись тайтлов в новый список обновлений.
-				if Slug == FromTitle:
-					IsWriteSlugs = True
-						
-				# Добавить алиас в список обновляемых тайтлов.
-				if IsWriteSlugs is True:
-					BuferTitleSlugs.append(Slug)
-
-			# Перезапись списка обновляемых тайтлов.
-			TitlesSlugs = BuferTitleSlugs
-				
-		# Запись в лог сообщения: заголовок парсинга.
-		logging.info("====== Parcing ======")
-
-		# Парсинг обновлённых тайтлов.
-		for Slug in TitlesSlugs:
-			# Инкремент текущего индекса.
-			CurrentTitleIndex += 1
-			# Очистка терминала.
-			Cls()
-			# Вывод в терминал прогресса.
-			print("Updating titles: " + str(len(TitlesList) - len(TitlesSlugs) + CurrentTitleIndex) + " / " + str(len(TitlesList)))
-			# Генерация сообщения.
-			ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(len(TitlesList) - len(TitlesSlugs) + CurrentTitleIndex) + " / " + str(len(TitlesList)) + "\n"
-			# Парсинг тайтла.
-			LocalTitle = TitleParser(Settings, Navigator, Slug.replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
-			# Загрузка обложек.
-			LocalTitle.downloadCover()
-			# Сохранение локальных файлов тайтла.
-			LocalTitle.save()
 
 	# Запись в лог сообщения: заголовог парсинга.
-	logging.info("====== Parcing ======")
+	logging.info("====== Parsing ======")
+
+	# Парсинг обновлённых тайтлов.
+	for Index in range(0, len(TitlesList)):
+		# Очистка терминала.
+		Cls()
+		# Вывод в терминал прогресса.
+		print("Updating titles: " + str(len(TitlesList) - len(TitlesList) + Index + 1) + " / " + str(len(TitlesList)))
+		# Генерация сообщения.
+		ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(len(TitlesList) - len(TitlesList) + Index + 1) + " / " + str(len(TitlesList)) + "\n"
+		# Парсинг тайтла.
+		LocalTitle = TitleParser(Settings, Navigator, TitlesList[Index].replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
+		# Загрузка обложек.
+		LocalTitle.downloadCover()
+		# Сохранение локальных файлов тайтла.
+		LocalTitle.save()
 		
 	# Спарсить каждый тайтл из списка.
 	for Index in range(StartSlugIndex, len(TitlesList)):

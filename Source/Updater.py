@@ -80,7 +80,7 @@ class Updater:
 			# Вывод в консоль: сканируемая страница.
 			print("Scanning page: " + str(PageIndex + 1))
 			# Переход на страницу каталога.
-			self.__Navigator.loadPage("https://hentaichan.live/manga/new?offset=" + str(20 * PageIndex))
+			self.__Navigator.loadPage("https://hentaichan.live/manga/newest?offset=" + str(20 * PageIndex))
 			# HTML код тела страницы после полной загрузки.
 			BodyHTML = self.__Navigator.getBodyHTML()
 			# Парсинг HTML кода страницы.
