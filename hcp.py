@@ -56,14 +56,17 @@ logging.info("Launch command: \"" + " ".join(sys.argv[1:len(sys.argv)]) + "\".")
 os.environ["WDM_LOCAL"] = "1"
 # Отключение логов WebDriver.
 os.environ["WDM_LOG"] = str(logging.NOTSET)
-# Отключение проверки SSL WebDriver.
-os.environ["WDM_SSL_VERIFY"] = "0"
-# Отключение предупреждения об отсутствии верификации SSL.
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Очистка консоли.
 Cls()
 # Чтение настроек.
 Settings = ReadJSON("Settings.json")
+
+# Если в настройках отключена проекрка SSL.
+if Settings["disable-ssl-verification"] == True:
+	# Отключение проверки SSL WebDriver.
+	os.environ["WDM_SSL_VERIFY"] = "0"
+	# Отключение предупреждения об отсутствии верификации SSL.
+	urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Если путь к директории обложек не указан, задать стандартный.
 if Settings["covers-directory"] == "":
