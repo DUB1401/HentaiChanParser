@@ -34,8 +34,8 @@ class BrowserNavigator:
 			# Установка размера окна браузера на FullHD для корректной работы сайтов.
 			self.__Browser.set_window_size(1920, 1080)
 			# Установка максимального времени загрузки страницы и выполнения скрипта.
-			self.__Browser.set_page_load_timeout(300)
-			self.__Browser.set_script_timeout(300)
+			self.__Browser.set_page_load_timeout(self.__Settings["timeout"])
+			self.__Browser.set_script_timeout(self.__Settings["timeout"])
 			
 		except FileNotFoundError:
 			# Запись в лог критической ошибки: неверный путь к вдрайверу.

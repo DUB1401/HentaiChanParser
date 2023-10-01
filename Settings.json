@@ -9,6 +9,7 @@
 	"genres": {},
 	"disable-ssl-verification": false,
 	"adblock": false,
+	"timeout": 60,
 	"retry-tries": 3,
 	"debug": false
 }
