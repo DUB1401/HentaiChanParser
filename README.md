@@ -6,7 +6,7 @@
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
 3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
 ```
-git+https://github.com/DUB1401/dublib.git
+git+https://github.com/DUB1401/dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
@@ -117,6 +117,11 @@ ___
 }
 ```
 В данном разделе можно указать список тегов, которые будут помечены как жанры, а также, при необходимости, задать для них новые названия. Переопределённые теги удаляются из оригинального списка.
+___
+```JSON
+"disable-ssl-verification": false
+```
+Отключает верификацию SSL для веб-драйвера. Помогает избежать исключения, возникающего из-за ограничений в вашей сети: `requests.exceptions.ConnectionError: Could not reach host. Are you offline?`
 ___
 ```JSON
 "adblock": false

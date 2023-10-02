@@ -65,7 +65,6 @@ class TitleParser:
 						
 						# Если ссылка на слайд заканчивается расширением MP4.
 						if SlideLink != None and SlideLink.endswith(".mp4") == False:
-
 							# Скрипт определения разрешения слайда.
 							Script = f'''
 								var Done = arguments[0];
@@ -553,16 +552,24 @@ class TitleParser:
 						}}
 						Slide.src = "{CoverLink}";
 					'''
-					# Получение разрешения обложки.
-					CoverResolution = self.__Navigator.executeAsyncJavaScript(Script)
+					
+					try:
+						# Получение разрешения обложки.
+						CoverResolution = self.__Navigator.executeAsyncJavaScript(Script)
+								
+					except TimeoutError:
+						# Запись в лог ошибки: не удалось определить размер обложки.
+						logging.error(f"Unable to sizing cover.")
+						
+					else:
 
-					# Проверка успешности получения ширины обложки.
-					if CoverResolution.split('/')[0].isdigit() == True and int(CoverResolution.split('/')[0]) > 0:
-						Cover["width"] = int(CoverResolution.split('/')[0])
+						# Проверка успешности получения ширины обложки.
+						if CoverResolution.split('/')[0].isdigit() == True and int(CoverResolution.split('/')[0]) > 0:
+							Cover["width"] = int(CoverResolution.split('/')[0])
 
-					# Проверка успешности получения высоты обложки.
-					if CoverResolution.split('/')[1].isdigit() == True and int(CoverResolution.split('/')[1]) > 0:
-						Cover["height"] = int(CoverResolution.split('/')[1])
+						# Проверка успешности получения высоты обложки.
+						if CoverResolution.split('/')[1].isdigit() == True and int(CoverResolution.split('/')[1]) > 0:
+							Cover["height"] = int(CoverResolution.split('/')[1])
 
 			# Если у обложки нет источника.
 			else:
@@ -685,8 +692,14 @@ class TitleParser:
 		SmallSoup = BeautifulSoup(str(Pages), "html.parser")
 		# Поиск HTML ссылок на страницы.
 		PagesLinks = SmallSoup.find_all("a")
-		# Количество страниц (добавляется 1 для компенсации отсутствия в списке первой страницы).
-		PagesCount = len(PagesLinks) + 1
+		
+		# Если кнопок перехода по страницам нет, то одна страница.
+		if len(PagesLinks) == 0:
+			PagesCount = 1
+		
+		# Если есть кнопки перехода по страницам, то вычесть кнопки навигации и добавить первую страниц.
+		else:
+			PagesCount = len(PagesLinks) + 1 - 2
 
 		return PagesCount
 
