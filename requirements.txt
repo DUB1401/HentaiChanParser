@@ -4,4 +4,3 @@ BeautifulSoup4
 PyEnchant
 Selenium
 Pillow
-lxml

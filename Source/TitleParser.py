@@ -121,17 +121,17 @@ class TitleParser:
 			for GenreName in list(self.__Settings["genres"].keys()):
 
 				# Если название тега совпадает с название жанра.
-				if self.__Title["tags"][TagIndex] == GenreName:
+				if self.__Title["tags"][TagIndex] == GenreName.lower():
 					# Запись тега для последующего удаления.
 					TagsToDeleting.append(self.__Title["tags"][TagIndex])
 					
 					# Если тег не нужно переименовать в жанр.
-					if self.__Settings["genres"][GenreName] == None:
+					if self.__Settings["genres"][GenreName.lower()] == None:
 						self.__Title["genres"].append(self.__Title["tags"][TagIndex])
 
 					# Если тег нужно переименовать в жанр.
 					else:
-						self.__Title["genres"].append(self.__Settings["genres"][GenreName])
+						self.__Title["genres"].append(self.__Settings["genres"][GenreName.lower()])
 
 		# Удаление ненужных тегов.
 		for Tag in TagsToDeleting:

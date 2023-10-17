@@ -211,12 +211,14 @@ if "collect" == CommandDataStruct.Name:
 	UpdateChecker = Updater(Settings, Navigator)
 	# Получение списка обновлённых тайтлов.
 	TitlesList = UpdateChecker.getUpdatesList()
-	UpdateChecker = None
 
 	# Сохранение каждого алиаса в файл.
 	with open("Collection.txt", "w") as FileWriter:
 		for Slug in TitlesList:
 			FileWriter.write(Slug + "\n")
+			
+	# Запись в лог сообщения: количество сохранённых в коллекцию файлов.
+	logging.info("Titles slugs saved in collection: " + str(len(TitlesList)) + ".")
 
 # Обработка команды: convert.
 if "convert" == CommandDataStruct.Name:
@@ -387,21 +389,6 @@ if "update" == CommandDataStruct.Name:
 
 	# Запись в лог сообщения: заголовог парсинга.
 	logging.info("====== Parsing ======")
-
-	# Парсинг обновлённых тайтлов.
-	for Index in range(0, len(TitlesList)):
-		# Очистка терминала.
-		Cls()
-		# Вывод в терминал прогресса.
-		print("Updating titles: " + str(len(TitlesList) - len(TitlesList) + Index + 1) + " / " + str(len(TitlesList)))
-		# Генерация сообщения.
-		ExternalMessage = InFuncMessage_Shutdown + InFuncMessage_ForceMode + "Updating titles: " + str(len(TitlesList) - len(TitlesList) + Index + 1) + " / " + str(len(TitlesList)) + "\n"
-		# Парсинг тайтла.
-		LocalTitle = TitleParser(Settings, Navigator, TitlesList[Index].replace(".json", ""), ForceMode = IsForceModeActivated, Message = ExternalMessage)
-		# Загрузка обложек.
-		LocalTitle.downloadCover()
-		# Сохранение локальных файлов тайтла.
-		LocalTitle.save()
 		
 	# Спарсить каждый тайтл из списка.
 	for Index in range(StartSlugIndex, len(TitlesList)):

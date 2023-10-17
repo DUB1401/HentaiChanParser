@@ -6,7 +6,7 @@
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
 3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
 ```
-git+https://github.com/DUB1401/dublib
+pip install git+https://github.com/DUB1401/dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
@@ -20,16 +20,16 @@ pip install -r requirements.txt
 4. Настроить скрипт путём редактирования _Settings.json_.
 5. Установить браузер [Google Chrome](https://www.google.com.iq/chrome/) в стандартную директорию на Windows, либо использовать _*.deb_ или _*.rpm_ пакет на Linux.
 6. Открыть директорию со скриптом в терминале. Можно использовать метод `cd` и прописать путь к папке, либо запустить терминал из проводника.
-7. Ввести нужную команду и дождаться завершения.
+7. Указать для выполнения главный файл скрипта `hcp.py`, передать ему команду вместе с параметрами, нажать кнопку ввода и дождаться завершения работы.
 
 # Консольные команды
 ```
-hcp.py collect
+collect
 ```
 Помещает список алиасов тайтлов, обновлённых на сайте за указанный в настройках период поиска обновлений, в файл _Collection.txt_.
 ___
 ```
-hcp.py convert [FILENAME] [SOURCE_FORMAT] [OUTPUT_FORMAT]
+convert [FILENAME] [SOURCE_FORMAT] [OUTPUT_FORMAT]
 ```
 Преобразует внутреннюю структуру JSON файлов определений тайтлов согласно одному из поддерживаемых форматов: [DMP-V1](Examples/DMP-V1.md), [HCMP-V1](Examples/HCMP-V1.md).
 
@@ -38,7 +38,7 @@ hcp.py convert [FILENAME] [SOURCE_FORMAT] [OUTPUT_FORMAT]
 Если вместо исходного формата указать флаг _**-auto**_, то конвертер автоматически попытается определить формат на основании содержимого JSON.
 ___
 ```
-hcp.py getcov [MANGA_SLUG] [FLAGS]
+getcov [MANGA_SLUG] [FLAGS]
 ```
 Загружает обложки конкретного тайтла.
 
@@ -46,7 +46,7 @@ hcp.py getcov [MANGA_SLUG] [FLAGS]
 * _**-f**_ – включает перезапись уже загруженных обложек.
 ___
 ```
-hcp.py parce [MANGA_SLUG] [FLAGS] [KEYS]
+parce [MANGA_SLUG] [FLAGS] [KEYS]
 ```
 Проводит парсинг тайтла с указанным алиасом в JSON формат и загружает его обложки. В случае, если файл тайтла уже существует, дополнит его новыми данными. 
 
@@ -59,7 +59,7 @@ hcp.py parce [MANGA_SLUG] [FLAGS] [KEYS]
 * _**--from**_ – указывает, с момента обнаружение какого алиаса необходимо начать парсинг коллекции.
 ___
 ```
-rp.py update [FLAGS] [KEYS]
+update [FLAGS] [KEYS]
 ```
 Проводит парсинг тайтлов, обновлённых за интервал времени, указанный в _Settings.json_.
 
