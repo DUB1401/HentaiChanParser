@@ -185,20 +185,18 @@ class TitleParser:
 
 		# Получение номера главы.
 		ChapterStruct["number"] = self.__GetChapterNumber(NameBlock.get_text())
-		# Получение ника переводчика.
-		ChapterStruct["translator"] = TranslatorBlock.get_text()
 		# Получение слайдов главы.
 		ChapterStruct["slides"] = list()
+		
+		# Если присутствует никнейм переводчика, то записать его.
+		if TranslatorBlock != None:
+			ChapterStruct["translator"] = TranslatorBlock.get_text().strip()
 
 		# Преобразование номера главы в числовое.
 		if ChapterStruct["number"] != None and '.' in ChapterStruct["number"]:
 			ChapterStruct["number"] = float(ChapterStruct["number"])
 		elif ChapterStruct["number"] != None:
 			ChapterStruct["number"] = int(ChapterStruct["number"])
-
-		# Если переводчика нет, то обнулить значение.
-		if ChapterStruct["translator"].strip(' ') == "":
-			ChapterStruct["translator"] = None
 
 		return ChapterStruct
 
