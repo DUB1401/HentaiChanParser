@@ -465,7 +465,7 @@ class TitleParser:
 			PageHTML = self.__Navigator.getBodyHTML()
 		
 			# Если у тайтла одна глава.
-			if "Хентай похожий на" in str(PageHTML):
+			if "Хентай похожий на" in str(PageHTML) or "Похожая манга" in str(PageHTML):
 				# Запись URL единственной главы.
 				ChaptersList.append(self.__Slug)
 			
