@@ -593,9 +593,10 @@ class TitleParser:
 				Description = DescriptionHTML.get_text().strip("\n \t")
 				# Удаление повторяющихся символов новой строки.
 				RemoveRecurringSubstrings(Description, '\n')
+				# Удаление краевых пробельных символов.
+				Description = Description.strip()
 				# Если описание пустое, то обнулить его.
-				if Description == "":
-					Description = None
+				if Description == "": Description = None
 		
 			# Заполнение полей описательной структуры.
 			self.__Title["site"] = "hentaichan.live"

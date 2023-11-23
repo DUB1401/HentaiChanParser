@@ -4,14 +4,14 @@
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [requests](https://github.com/psf/requests), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
+3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [fake_useragent](https://github.com/fake-useragent/fake-useragent), [PyEnchant](https://github.com/pyenchant/pyenchant), [requests](https://github.com/psf/requests), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
 ```
 pip install git+https://github.com/DUB1401/dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
+pip install fake-useragent
 pip install PyEnchant
 pip install requests
-pip install Selenium
 pip install Pillow
 ```
 Либо установить сразу все пакеты при помощи следующей команды, выполненной из директории скрипта.
@@ -19,9 +19,8 @@ pip install Pillow
 pip install -r requirements.txt
 ```
 4. Настроить скрипт путём редактирования _Settings.json_.
-5. Если используется режим доступа через Selenium, установить браузер [Google Chrome](https://www.google.com.iq/chrome/) в стандартную директорию на Windows, либо использовать _*.deb_ или _*.rpm_ пакет на Linux.
-6. Открыть директорию со скриптом в терминале. Можно использовать метод `cd` и прописать путь к папке, либо запустить терминал из проводника.
-7. Указать для выполнения главный файл скрипта `hcp.py`, передать ему команду вместе с параметрами, нажать кнопку ввода и дождаться завершения работы.
+5. Открыть директорию со скриптом в терминале. Можно использовать метод `cd` и прописать путь к папке, либо запустить терминал из проводника.
+6. Указать для выполнения главный файл скрипта `hcp.py`, передать ему команду вместе с параметрами, нажать кнопку ввода и дождаться завершения работы.
 
 # Консольные команды
 ```
@@ -82,17 +81,12 @@ update [FLAGS] [KEYS]
 Задаёт внутреннюю структуру описательных файлов тайтлов. Поддерживаются следующие форматы: [DMP-V1](Examples/DMP-V1.md), [HCMP-V1](Examples/HCMP-V1.md).
 ___
 ```JSON
-"selenium-mode": false
-```
-Переключает парсер в режим отправки запросов через браузер [Google Chrome](https://www.google.com.iq/chrome/).
-___
-```JSON
 "sizing-images": false
 ```
 Указывает, нужно ли определять и записывать в JSON разрешение обложки и слайдов.
 
 > [!WARNING]  
-> Опция недоступна при отключённом режиме доступа через Selenium.
+> На данный момент опция недоступна.
 ___
 ```JSON
 "use-id-instead-slug": false
@@ -126,35 +120,5 @@ ___
 }
 ```
 В данном разделе можно указать список тегов, которые будут помечены как жанры, а также, при необходимости, задать для них новые названия. Переопределённые теги удаляются из оригинального списка.
-___
-```JSON
-"disable-ssl-verification": false
-```
-Отключает верификацию SSL для веб-драйвера. Помогает избежать исключения, возникающего из-за ограничений в вашей сети: `requests.exceptions.ConnectionError: Could not reach host. Are you offline?`
-___
-```JSON
-"adblock": false
-```
-Позволяет включить расширение [AdBlock Plus](https://gitlab.com/eyeo/adblockplus/abc/webext-ad-filtering-solution), что может ускорить обработку некоторых страниц [HentaiChan](https://hentaichan.live).
-___
-```JSON
-"timeout": 75
-```
-Указывает, через сколько секунд загрузка вкладки или выполнение скрипта считаются неудачными и инициализируют повторную попытку доступа.
-
-Рекомендуемое значение: не менее 75 секунд (так как стандартное время отправки сервисом [nginx](https://nginx.org) ошибки 504 составляет 60 секунд, а время отклика сайта иногда доходит до 15 секунд).
-___
-```JSON
-"retry-tries": 3
-```
-Указывает, сколко раз проводить повторные попытки при ошибке загрузки страницы.
-___
-```JSON
-"debug": false
-```
-Переключает отображение окна браузера во время загрузки страниц через [Selenium](https://github.com/SeleniumHQ/selenium).
-
-# Благодарность
-* [AdBlock Plus](https://gitlab.com/eyeo/adblockplus/abc/webext-ad-filtering-solution) – расширение для браузеров, блокирующее рекламу и вспылвающие окна (в модификации [DUB1401](https://github.com/DUB1401): _отключена страница приветствия_).
 
 _Copyright © DUB1401. 2022-2023._

@@ -338,8 +338,8 @@ class WebRequestor:
 		
 		return self.__Browser
 			
-	# Задаёт конфигурацию.
-	def setConfig(self, Config: RequestsConfig | SeleniumConfig = RequestsConfig()):
+	# Задаёт конфигурацию и инициализирует модуль запросов.
+	def initialize(self, Config: RequestsConfig | SeleniumConfig = RequestsConfig()):
 		
 		# Если задана конфигурация Selenium.
 		if type(Config) == SeleniumConfig:

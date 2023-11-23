@@ -61,13 +61,6 @@ Cls()
 # Чтение настроек.
 Settings = ReadJSON("Settings.json")
 
-# Если в настройках отключена проекрка SSL.
-if Settings["disable-ssl-verification"] == True:
-	# Отключение проверки SSL WebDriver.
-	os.environ["WDM_SSL_VERIFY"] = "0"
-	# Отключение предупреждения об отсутствии верификации SSL.
-	urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 # Если путь к директории обложек не указан, задать стандартный.
 if Settings["covers-directory"] == "":
 	Settings["covers-directory"] = "Covers/"
@@ -83,17 +76,11 @@ if Settings["titles-directory"] == "":
 # Если путь к директории тайтлов не заканчивается слэшем, то добавить его.
 elif Settings["titles-directory"][-1] != '/':
 	Settings["titles-directory"] += "/"
-	
-# Если Selenium отключен, отключить также определение размеров слайдов.
-if Settings["selenium-mode"] == False:
-	Settings["sizing-images"] = False
 
 # Приведение формата описательного файла к нижнему регистру.
 Settings["format"] = Settings["format"].lower()
 # Запись в лог сообщения: формат выходного файла.
 logging.info("Output file format: \"" + Settings["format"] + "\".")
-# Запись в лог сообщения: выбранный режим запроса.
-logging.info("Requests type: Selenium (JavaScript interpreter in Google Chrome)." if  Settings["selenium-mode"] == True else "Requests type: requests (Python library).")
 # Запись в лог сообщения: статус режима использования ID вместо алиаса.
 logging.info("Using ID instead slug: " + ("ON." if Settings["use-id-instead-slug"] == True else "OFF."))
 # Запись в лог сообщения: статус режима использованиz ID вместо алиаса.
@@ -198,26 +185,10 @@ if "s" in CommandDataStruct.Flags:
 # >>>>> ИНИЦИАЛИЗАЦИЯ МЕНЕДЖЕРА ЗАПРОСОВ <<<<< #
 #==========================================================================================#
 
-# Конфигурация запросов.
-Config = None
-
-# Если используется Selenium.
-if Settings["selenium-mode"] == True:
-	# Создание конфигурации Selenium.
-	Config = SeleniumConfig
-	# Заполнение конфигурации.
-	Config.setBrowserType(Browsers.Chrome)
-	Config.setWindowSize(1920, 1080)
-	Config.setHeadless(not Settings["debug"])
-	
-else:
-	# Создание конфигурации requests.
-	Config = RequestsConfig()
-
 # Экземпляр навигатора.
 Navigator = WebRequestor()
 # Установка конфигурации.
-Navigator.setConfig(Config)
+Navigator.initialize()
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА КОММАНД <<<<< #

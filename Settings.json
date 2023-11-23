@@ -1,16 +1,10 @@
 {
 	"format": "dmp-v1",
-	"selenium-mode": false,
 	"sizing-images": false,
 	"use-id-instead-slug": false,
 	"auto-branches-merging": false,
 	"check-updates-period": 2,
 	"covers-directory": "",
 	"titles-directory": "",
-	"genres": {},
-	"disable-ssl-verification": false,
-	"adblock": false,
-	"timeout": 60,
-	"retry-tries": 3,
-	"debug": false
+	"genres": {}
 }

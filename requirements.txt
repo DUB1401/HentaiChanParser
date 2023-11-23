@@ -1,6 +1,7 @@
 git+https://github.com/DUB1401/dublib
 webdriver_manager
 BeautifulSoup4
+fake-useragent
 PyEnchant
 requests
 Selenium
