@@ -1,6 +1,7 @@
 {
 	"format": "dmp-v1",
-	"sizing-images": true,
+	"selenium-mode": false,
+	"sizing-images": false,
 	"use-id-instead-slug": false,
 	"auto-branches-merging": false,
 	"check-updates-period": 2,

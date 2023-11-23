@@ -1,4 +1,4 @@
-from Source.BrowserNavigator import BrowserNavigator
+from Source.WebRequestor import *
 from dublib.Methods import Cls
 from bs4 import BeautifulSoup
 
@@ -51,7 +51,7 @@ class Updater:
 		return Date
 
 	# Конструктор: задаёт глобальные настройки и инициализирует объект.
-	def __init__(self, Settings: dict, Navigator: BrowserNavigator):
+	def __init__(self, Settings: dict, Navigator: WebRequestor):
 
 		#---> Генерация свойств.
 		#==========================================================================================#
@@ -79,12 +79,10 @@ class Updater:
 			Cls()
 			# Вывод в консоль: сканируемая страница.
 			print("Scanning page: " + str(PageIndex + 1))
-			# Переход на страницу каталога.
-			self.__Navigator.loadPage("https://hentaichan.live/manga/newest?offset=" + str(20 * PageIndex))
-			# HTML код тела страницы после полной загрузки.
-			BodyHTML = self.__Navigator.getBodyHTML()
+			# Запрос страницы каталога.
+			Response = self.__Navigator.get("https://hentaichan.live/manga/newest?offset=" + str(20 * PageIndex))
 			# Парсинг HTML кода страницы.
-			Soup = BeautifulSoup(BodyHTML, "html.parser")
+			Soup = BeautifulSoup(Response.text, "html.parser")
 			# Поиск всех блоков глав.
 			ChaptersBlocks = Soup.find_all("div", {"class": "content_row"})
 			# Инкремент индекса страницы.

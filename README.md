@@ -4,12 +4,13 @@
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
+3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [requests](https://github.com/psf/requests), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
 ```
 pip install git+https://github.com/DUB1401/dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install PyEnchant
+pip install requests
 pip install Selenium
 pip install Pillow
 ```
@@ -18,7 +19,7 @@ pip install Pillow
 pip install -r requirements.txt
 ```
 4. Настроить скрипт путём редактирования _Settings.json_.
-5. Установить браузер [Google Chrome](https://www.google.com.iq/chrome/) в стандартную директорию на Windows, либо использовать _*.deb_ или _*.rpm_ пакет на Linux.
+5. Если используется режим доступа через Selenium, установить браузер [Google Chrome](https://www.google.com.iq/chrome/) в стандартную директорию на Windows, либо использовать _*.deb_ или _*.rpm_ пакет на Linux.
 6. Открыть директорию со скриптом в терминале. Можно использовать метод `cd` и прописать путь к папке, либо запустить терминал из проводника.
 7. Указать для выполнения главный файл скрипта `hcp.py`, передать ему команду вместе с параметрами, нажать кнопку ввода и дождаться завершения работы.
 
@@ -81,9 +82,17 @@ update [FLAGS] [KEYS]
 Задаёт внутреннюю структуру описательных файлов тайтлов. Поддерживаются следующие форматы: [DMP-V1](Examples/DMP-V1.md), [HCMP-V1](Examples/HCMP-V1.md).
 ___
 ```JSON
+"selenium-mode": false
+```
+Переключает парсер в режим отправки запросов через браузер [Google Chrome](https://www.google.com.iq/chrome/).
+___
+```JSON
 "sizing-images": false
 ```
 Указывает, нужно ли определять и записывать в JSON разрешение обложки и слайдов.
+
+> [!WARNING]  
+> Опция недоступна при отключённом режиме доступа через Selenium.
 ___
 ```JSON
 "use-id-instead-slug": false

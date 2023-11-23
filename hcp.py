@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 from dublib.Methods import Cls, CheckPythonMinimalVersion, MakeRootDirectories, Shutdown, WriteJSON, ReadJSON
-from Source.BrowserNavigator import BrowserNavigator
 from Source.Functions import SecondsToTimeString
 from Source.TitleParser import TitleParser
 from Source.Formatter import Formatter
 from Source.Updater import Updater
 from dublib.Terminalyzer import *
+from Source.WebRequestor import *
 
 import datetime
 import logging
@@ -83,11 +83,17 @@ if Settings["titles-directory"] == "":
 # Если путь к директории тайтлов не заканчивается слэшем, то добавить его.
 elif Settings["titles-directory"][-1] != '/':
 	Settings["titles-directory"] += "/"
+	
+# Если Selenium отключен, отключить также определение размеров слайдов.
+if Settings["selenium-mode"] == False:
+	Settings["sizing-images"] = False
 
 # Приведение формата описательного файла к нижнему регистру.
 Settings["format"] = Settings["format"].lower()
 # Запись в лог сообщения: формат выходного файла.
 logging.info("Output file format: \"" + Settings["format"] + "\".")
+# Запись в лог сообщения: выбранный режим запроса.
+logging.info("Requests type: Selenium (JavaScript interpreter in Google Chrome)." if  Settings["selenium-mode"] == True else "Requests type: requests (Python library).")
 # Запись в лог сообщения: статус режима использования ID вместо алиаса.
 logging.info("Using ID instead slug: " + ("ON." if Settings["use-id-instead-slug"] == True else "OFF."))
 # Запись в лог сообщения: статус режима использованиz ID вместо алиаса.
@@ -189,15 +195,29 @@ if "s" in CommandDataStruct.Flags:
 	InFuncMessage_Shutdown = "Computer will be turned off after the script is finished!\n"
 
 #==========================================================================================#
-# >>>>> ОТКРЫТИЕ БРАУЗЕРА <<<<< #
+# >>>>> ИНИЦИАЛИЗАЦИЯ МЕНЕДЖЕРА ЗАПРОСОВ <<<<< #
 #==========================================================================================#
 
-# Экземпляр навигатора.
-Navigator = None
+# Конфигурация запросов.
+Config = None
 
-# Если потребуется браузер.
-if CommandDataStruct.Name in ["collect", "getcov", "parse", "update"]:
-	Navigator = BrowserNavigator(Settings)
+# Если используется Selenium.
+if Settings["selenium-mode"] == True:
+	# Создание конфигурации Selenium.
+	Config = SeleniumConfig
+	# Заполнение конфигурации.
+	Config.setBrowserType(Browsers.Chrome)
+	Config.setWindowSize(1920, 1080)
+	Config.setHeadless(not Settings["debug"])
+	
+else:
+	# Создание конфигурации requests.
+	Config = RequestsConfig()
+
+# Экземпляр навигатора.
+Navigator = WebRequestor()
+# Установка конфигурации.
+Navigator.setConfig(Config)
 
 #==========================================================================================#
 # >>>>> ОБРАБОТКА КОММАНД <<<<< #
@@ -407,10 +427,8 @@ if "update" == CommandDataStruct.Name:
 # >>>>> ЗАВЕРШЕНИЕ РАБОТЫ СКРИПТА <<<<< #
 #==========================================================================================#
 
-# Если использовался браузер, то закрыть его.
-if Navigator != None:
-	Navigator.close()
-
+# Закрытие запросчика.
+Navigator.close()
 # Запись в лог сообщения: заголовок завершения работы скрипта.
 logging.info("====== Exiting ======")
 # Очистка консоли.
