@@ -1,5 +1,6 @@
 {
 	"format": "dmp-v1",
+	"use-webp": false,
 	"sizing-images": false,
 	"use-id-instead-slug": false,
 	"auto-branches-merging": false,

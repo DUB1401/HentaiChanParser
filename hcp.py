@@ -10,7 +10,6 @@ from Source.WebRequestor import *
 
 import datetime
 import logging
-import urllib3
 import time
 import sys
 import os
@@ -186,7 +185,7 @@ if "s" in CommandDataStruct.Flags:
 #==========================================================================================#
 
 # Экземпляр навигатора.
-Navigator = WebRequestor()
+Navigator = WebRequestor(Logging = True)
 # Установка конфигурации.
 Navigator.initialize()
 
@@ -275,7 +274,7 @@ if "parse" == CommandDataStruct.Name:
 				# Поместить алиасы в список на парсинг, если строка не пуста.
 				for Slug in Bufer:
 					if Slug.strip() != "":
-						TitlesList.append(Slug)
+						TitlesList.append(Slug.strip())
 
 			# Запись в лог сообщения: количество тайтлов в коллекции.
 			logging.info("Titles count in collection: " + str(len(TitlesList)) + ".")

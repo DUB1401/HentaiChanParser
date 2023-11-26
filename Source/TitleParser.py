@@ -413,6 +413,11 @@ class TitleParser:
 				"width": None,
 				"height": None
 			}
+			
+			# Если используется WEBP.
+			if self.__Settings["use-webp"] == True:
+				# Изменить расширение файла в ссылке.
+				SlideInfo["link"] = SlideInfo["link"].replace("jpg", "webp").replace("jpeg", "webp")
 
 			# Запись в лог предупреждения: слайд является видео.
 			if SlideInfo["link"].endswith(".mp4"): logging.warning("Chapter: \"" + ChapterSlug + "\". Slide " + str(SlideIndex + 1) + " is MP4 video.")
@@ -851,7 +856,7 @@ class TitleParser:
 
 	# Конструктор.
 	def __init__(self, Settings: dict, Navigator: WebRequestor, Slug: str, ForceMode: bool = False, Message: str = "", Amending: bool = True):
-
+		
 		#---> Генерация динамических свойств.
 		#==========================================================================================#
 		# Количество выполненных слияний глав.
@@ -892,10 +897,14 @@ class TitleParser:
 		# Алиас тайтла.
 		self.__Slug = Slug
 		# Сообщение из внешнего обработчика.
-		self.__Message = Message + "Current title: " + self.__Slug + "\n\n"
+		self.__Message = Message + "Current title: " + self.__Slug + "\n"
 		# ID тайтла.
 		self.__ID = None
-
+		# Очистка консоли.
+		Cls()
+		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
+		print(self.__Message, end = "")
+		
 		#---> Получение данных о тайтле.
 		#==========================================================================================#
 		# Список глав в тайтле.
