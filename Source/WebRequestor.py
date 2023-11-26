@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 
 import requests
+import logging
 import enum
 
 #==========================================================================================#
@@ -228,7 +229,7 @@ class WebRequestor:
 		return Response
 			
 	# Конструктор.
-	def __init__(self):
+	def __init__(self, Logging: bool = False):
 		
 		#---> Генерация динамических свойств.
 		#==========================================================================================#
@@ -242,6 +243,8 @@ class WebRequestor:
 		self.__IsSeleniumUsed = False
 		# Экземпляр веб-браузера.
 		self.__Browser = None
+		# Состояние: вести ли логи.
+		self.__Logging = Logging
 		
 	# Закрывает модуль запросов.
 	def close(self):
@@ -315,13 +318,27 @@ class WebRequestor:
 		return Response
 		
 	# Загружает страницу.
-	def get(self, URL: str) -> WebResponse:
+	def get(self, URL: str, TriesCount: int = 3) -> WebResponse:
 		# Ответ.
 		Response = WebResponse()
+		# Индекс попытки.
+		Try = 0
 		
-		# Если задана конфигурация, то выполнить запрос.
+		# Если задана конфигурация.
 		if self.__CheckConfigPresence() == True:
-			Response = self.__GetBySelenium(URL) if self.__IsSeleniumUsed == True else self.__GetByRequests(URL)
+			
+			# Пока не превышено количество попыток.
+			while Try < TriesCount or Response.status_code != 200:
+				# Инкремент повтора.
+				Try += 1
+				
+				try:
+					# Выполнение запроса.
+					Response = self.__GetBySelenium(URL) if self.__IsSeleniumUsed == True else self.__GetByRequests(URL)
+					
+				except Exception as ExceptionData:
+					# Запись в лог ошибки: не удалось выполнить запрос.
+					if self.__Logging == True: logging.error("Some error occured during request: \"" + str(ExceptionData).split('\n')[0] + "\".")
 			
 		else:
 			# Выброс исключения.
