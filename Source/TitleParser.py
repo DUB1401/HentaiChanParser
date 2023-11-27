@@ -32,7 +32,7 @@ class TitleParser:
 				# Очистка консоли.
 				Cls()
 				# Вывод в терминал: прогресс дополнения.
-				print(self.__Message + "Amending chapters: " + str(AmendedChaptersCount + 1) + " / " + str(TotalChaptersCount))
+				print(self.__Message + "\nAmending chapters: " + str(AmendedChaptersCount + 1) + " / " + str(TotalChaptersCount))
 
 				# Если в главе нет данных о слайдах.
 				if self.__Title["chapters"][BranchID][ChapterIndex]["slides"] == list():
@@ -571,7 +571,7 @@ class TitleParser:
 		Response = self.__Navigator.get(TitleURL)
 		
 		# Если запрос успешен.
-		if Response.status_code == 200:
+		if Response.status_code == 200 and "здесь ничего нет. Это ошибочная ссылка." not in Response.text:
 			# Парсинг HTML кода тела страницы.
 			Soup = BeautifulSoup(Response.text, "html.parser")
 			# Поиск HTML элемента названия тайтла.
