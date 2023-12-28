@@ -4,14 +4,14 @@
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [dublib](https://github.com/DUB1401/dublib), [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [fake_useragent](https://github.com/fake-useragent/fake-useragent), [PyEnchant](https://github.com/pyenchant/pyenchant), [requests](https://github.com/psf/requests), [Selenium](https://github.com/SeleniumHQ/selenium), [Pillow](https://github.com/python-pillow/Pillow).
+3. В среду исполнения установить следующие пакеты: [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [fake_useragent](https://github.com/fake-useragent/fake-useragent), [PyEnchant](https://github.com/pyenchant/pyenchant), [requests](https://github.com/psf/requests), [Selenium](https://github.com/SeleniumHQ/selenium), [dublib](https://github.com/DUB1401/dublib), [Pillow](https://github.com/python-pillow/Pillow).
 ```
-pip install git+https://github.com/DUB1401/dublib
 pip install webdriver_manager
 pip install BeautifulSoup4
 pip install fake-useragent
 pip install PyEnchant
 pip install requests
+pip install dublib
 pip install Pillow
 ```
 Либо установить сразу все пакеты при помощи следующей команды, выполненной из директории скрипта.

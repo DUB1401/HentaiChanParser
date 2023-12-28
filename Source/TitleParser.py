@@ -1,6 +1,6 @@
 from dublib.Methods import CheckForCyrillicPresence, Cls, RemoveHTML, RemoveRecurringSubstrings
+from dublib.WebRequestor import WebRequestor
 from Source.Formatter import Formatter
-from Source.WebRequestor import *
 from collections import Counter
 from bs4 import BeautifulSoup
 

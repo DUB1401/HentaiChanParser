@@ -1,4 +1,4 @@
-from Source.WebRequestor import *
+from dublib.WebRequestor import WebRequestor
 from dublib.Methods import Cls
 from bs4 import BeautifulSoup
 

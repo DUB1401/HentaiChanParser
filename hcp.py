@@ -2,11 +2,11 @@
 
 from dublib.Methods import Cls, CheckPythonMinimalVersion, MakeRootDirectories, Shutdown, WriteJSON, ReadJSON
 from Source.Functions import SecondsToTimeString
+from dublib.WebRequestor import WebRequestor
 from Source.TitleParser import TitleParser
 from Source.Formatter import Formatter
 from Source.Updater import Updater
 from dublib.Terminalyzer import *
-from Source.WebRequestor import *
 
 import datetime
 import logging
