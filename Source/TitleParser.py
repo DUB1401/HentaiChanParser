@@ -1,6 +1,7 @@
-from dublib.Methods import CheckForCyrillicPresence, Cls, RemoveHTML, RemoveRecurringSubstrings
+from dublib.Methods import CheckForCyrillicPresence, Cls, ReadJSON, RemoveRecurringSubstrings, WriteJSON
+from Source.Functions import GetImageResolution
 from dublib.WebRequestor import WebRequestor
-from Source.Formatter import Formatter
+from dublib.Polyglot import HTML
 from collections import Counter
 from bs4 import BeautifulSoup
 
@@ -26,8 +27,10 @@ class TitleParser:
 		# Общее количество глав.
 		TotalChaptersCount = self.__GetTotalChaptersCount()
 
-		# Для каждой главы в каждой ветви получить слайды.
+		# Для каждой ветви.
 		for BranchID in BranchesID:
+			
+			# Для каждой главы.
 			for ChapterIndex in range(0, len(self.__Title["chapters"][BranchID])):
 				# Очистка консоли.
 				Cls()
@@ -43,8 +46,10 @@ class TitleParser:
 					# Состояние: повторять ли запрос данных.
 					RepeatRequest = False
 					
-					# Проверить каждый слайд на отсутствие ссылки
+					# Для каждого слайда.
 					for Slide in self.__Title["chapters"][BranchID][ChapterIndex]["slides"]:
+						
+						# Если у слайда нет ссылки и необходимо повторить запрос.
 						if Slide["link"] == None and RepeatRequest == False:
 							# Проведение повторного запроса данных.
 							self.__Title["chapters"][BranchID][ChapterIndex]["slides"] = self.__GetChapterSlides(ChapterSlug)
@@ -55,47 +60,6 @@ class TitleParser:
 					AmendedChaptersCount += 1
 					# Запись в лог сообщения: глава дополнена.
 					logging.info("Title: \"" + self.__Slug + "\". Chapter " + str(self.__Title["chapters"][BranchID][ChapterIndex]["id"]) + " amended.")
-
-		# Если включено определение размеров, для каждого слайда, каждой главы в каждой ветви попытаться получить разрешение.
-		if self.__Settings["sizing-images"] == True:
-			for BranchID in BranchesID:
-				for ChapterIndex in range(0, len(self.__Title["chapters"][BranchID])):
-					for SlideIndex in range(0, len(self.__Title["chapters"][BranchID][ChapterIndex]["slides"])):
-						# Ссылка на слайд.
-						SlideLink = self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["link"]
-						
-						# Если ссылка на слайд заканчивается расширением MP4.
-						if SlideLink != None and SlideLink.endswith(".mp4") == False:
-							# Скрипт определения разрешения слайда.
-							Script = f'''
-								var Done = arguments[0];
-								const Slide = new Image();
-								Slide.onload = function() {{
-								  Done(Slide.width + "/" + Slide.height);
-								}}
-								Slide.src = "{SlideLink}";
-							'''
-							
-							try:
-								# Получение разрешения слайда.
-								SlideResolution = self.__Navigator.executeAsyncJavaScript(Script)
-								
-							except TimeoutError:
-								# Запись в лог ошибки: не удалось определить размер слайда.
-								logging.error(f"Unable to sizing slide {SlideIndex + 1}.")
-							
-							else:
-								# Проверка успешности получения ширины слайда.
-								if SlideResolution.split('/')[0].isdigit() == True and int(SlideResolution.split('/')[0]) > 0:
-									self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["width"] = int(SlideResolution.split('/')[0])
-
-								# Проверка успешности получения разрешения.
-								if SlideResolution.split('/')[1].isdigit() == True and int(SlideResolution.split('/')[1]) > 0:
-									self.__Title["chapters"][BranchID][ChapterIndex]["slides"][SlideIndex]["height"] = int(SlideResolution.split('/')[1])
-								
-						elif SlideLink != None:
-							# Запись в лог предупреждения: слайд является видео.
-							logging.warning("Title: \"" + self.__Slug + f"\". Slide {SlideIndex + 1} is MP4 video.")
 
 		# Запись в лог сообщения: количество дополненных глав.
 		logging.info("Title: \"" + self.__Slug + "\". Amended chapters: " + str(AmendedChaptersCount) + ".")
@@ -174,8 +138,8 @@ class TitleParser:
 		# Структура главы.
 		ChapterStruct = {
 			"id": self.__GetChapterID(ChapterSlug),
-			"number": None,
 			"volume": None,
+			"number": None,
 			"name": None,
 			"is-paid": False,
 			"translator": None,
@@ -400,7 +364,7 @@ class TitleParser:
 			# Если скрипт содержит определения слайдов.
 			if "\"thumbs\": [" in str(Script):
 				# Буфер обработки скрипта.
-				Bufer = RemoveHTML(str(Script).replace("var data = ", "").replace("createGallery(data)", "")).replace('\'', '"')
+				Bufer = HTML(str(Script).replace("var data = ", "").replace("createGallery(data)", "")).plain_text.replace('\'', '"')
 				# Форматировать скрипт в JSON.
 				ImagesJSON = json.loads(Bufer)
 		
@@ -417,7 +381,7 @@ class TitleParser:
 			# Если используется WEBP.
 			if self.__Settings["use-webp"] == True:
 				# Изменить расширение файла в ссылке.
-				SlideInfo["link"] = SlideInfo["link"].replace("jpg", "webp").replace("jpeg", "webp")
+				SlideInfo["link"] = SlideInfo["link"].replace(".jpg", ".webp").replace(".jpeg", ".webp")
 
 			# Запись в лог предупреждения: слайд является видео.
 			if SlideInfo["link"].endswith(".mp4"): logging.warning("Chapter: \"" + ChapterSlug + "\". Slide " + str(SlideIndex + 1) + " is MP4 video.")
@@ -505,41 +469,20 @@ class TitleParser:
 
 			# Если у обложки есть источник.
 			if str(CoverHTML["src"]) != "":
+				# Заполнение данных обложки.
 				Cover["link"] = str(CoverHTML["src"])
 				Cover["filename"] = Cover["link"].split('/')[-1]
 				CoversList.append(Cover)
-
-				# Если включено определение размеров, попытаться получить разрешение обложки.
-				if self.__Settings["sizing-images"] == True:
-					# Ссылка на обложку.
-					CoverLink = Cover["link"]
-					# Скрипт определения разрешения слайда.
-					Script = f'''
-						var Done = arguments[0];
-						const Slide = new Image();
-						Slide.onload = function() {{
-							Done(Slide.width + "/" + Slide.height);
-						}}
-						Slide.src = "{CoverLink}";
-					'''
-					
-					try:
-						# Получение разрешения обложки.
-						CoverResolution = self.__Navigator.executeAsyncJavaScript(Script)
-								
-					except TimeoutError:
-						# Запись в лог ошибки: не удалось определить размер обложки.
-						logging.error(f"Unable to sizing cover.")
-						
-					else:
-
-						# Проверка успешности получения ширины обложки.
-						if CoverResolution.split('/')[0].isdigit() == True and int(CoverResolution.split('/')[0]) > 0:
-							Cover["width"] = int(CoverResolution.split('/')[0])
-
-						# Проверка успешности получения высоты обложки.
-						if CoverResolution.split('/')[1].isdigit() == True and int(CoverResolution.split('/')[1]) > 0:
-							Cover["height"] = int(CoverResolution.split('/')[1])
+				# Используемое имя тайтла: ID или алиас.
+				UsedTitleName = str(self.__ID) if self.__Settings["use-id-instead-slug"] == True else self.__Slug
+				
+				# Если включено определение разрешение обложки.
+				if self.__Settings["sizing-covers"] == True:
+					# Определение разрешения.
+					Resolution = GetImageResolution(self.__Settings["covers-directory"] + UsedTitleName + "/" + Cover["filename"])
+					# Заполнение разрешения.
+					Cover["width"] = Resolution["width"]
+					Cover["height"] = Resolution["height"]
 
 			# Если у обложки нет источника.
 			else:
@@ -698,45 +641,20 @@ class TitleParser:
 		if self.__ForceMode == True:
 			# Запись в лог сообщения: найден локальный описательный файл тайтла.
 			logging.info("Title: \"" + self.__Slug + "\". Local JSON already exists. Will be overwritten...")
+			
 		else:
 			# Запись в лог сообщения: найден локальный описательный файл тайтла.
 			logging.info("Title: \"" + self.__Slug + "\". Local JSON already exists. Trying to merge...")
+			
+		# Чтение локального файла.
+		LocalTitle = ReadJSON(self.__Settings["titles-directory"] + LocalFilename + ".json")
+		# Записать главы из каждой ветви.
+		for BranchID in LocalTitle["chapters"].keys(): LocalChaptersList += LocalTitle["chapters"][BranchID]
 
-		# Открытие локального описательного файла JSON.
-		with open(self.__Settings["titles-directory"] + LocalFilename + ".json", encoding = "utf-8") as FileRead:
-			# Локальный описательный файл JSON.
-			LocalTitle = None
-
-			try:
-				# Попытка прочитать файл.
-				LocalTitle = json.load(FileRead)
-
-				# Инициализация конвертера.
-				FormatterObject = Formatter(self.__Settings, LocalTitle)
-
-				# Если формат локального файла нестандартный.
-				if FormatterObject.getFormat() == "hcmp-v1":
-					# Получение списка глав.
-					LocalChaptersList = LocalTitle["chapters"]
-
-				# Если формат локального файла стандартный.
-				else:
-
-					# Получение списка глав из всех ветвей.
-					for BranchID in LocalTitle["chapters"].keys():
-						LocalChaptersList += LocalTitle["chapters"][BranchID]
-
-			except json.decoder.JSONDecodeError:
-				# Запись в лог ошибки: не удалось прочитать существующий файл.
-				logging.error("Title: \"" + self.__TitleHeader + "\". Unable to read existing file!")
-
-		# Добавить индексы в определения слайдов для совместимости с DMP-V1.
-		for ChapterIndex in range(0, len(LocalChaptersList)):
-			for SlideIndex in range(0, len(LocalChaptersList[ChapterIndex]["slides"])):
-				LocalChaptersList[ChapterIndex]["slides"][SlideIndex] = { "index": SlideIndex + 1 } | LocalChaptersList[ChapterIndex]["slides"][SlideIndex]
-
-		# Произвести слияние информации о слайдах из локального файла с данными, полученными с сервера.
+		# Для каждой ветви.
 		for BranchID in self.__Title["chapters"].keys():
+			
+			# Для каждой главы.
 			for ChapterIndex in range(0, len(self.__Title["chapters"][BranchID])):
 				# ID текущей главы.
 				ChapterID = self.__Title["chapters"][BranchID][ChapterIndex]["id"]
@@ -900,6 +818,7 @@ class TitleParser:
 		self.__Message = Message + "Current title: " + self.__Slug + "\n"
 		# ID тайтла.
 		self.__ID = None
+		
 		# Очистка консоли.
 		Cls()
 		# Вывод в консоль: сообщение из внешнего обработчика и алиас обрабатываемого тайтла.
@@ -1045,13 +964,8 @@ class TitleParser:
 			else:
 				UsedTitleName = str(self.__ID)
 
-			# Инициализация конвертера.
-			FormatterObject = Formatter(self.__Settings, self.__Title, "dmp-v1")
-			FormattedTitle = FormatterObject.convert(self.__Settings["format"])
-
-			# Сохранение локального файла JSON.
-			with open(self.__Settings["titles-directory"] + UsedTitleName + ".json", "w", encoding = "utf-8") as FileWrite:
-				json.dump(FormattedTitle, FileWrite, ensure_ascii = False, indent = '\t', separators = (',', ': '))
+			# Сохранение файла.
+			WriteJSON(self.__Settings["titles-directory"] + UsedTitleName + ".json", self.__Title)
 
 			# Запись в лог сообщения: создан или обновлён локальный файл.
 			if self.__MergedChaptersCount > 0:

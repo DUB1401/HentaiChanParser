@@ -1,8 +1,4 @@
-webdriver_manager
 BeautifulSoup4
-fake-useragent
 PyEnchant
-requests
-Selenium
 dublib
 Pillow

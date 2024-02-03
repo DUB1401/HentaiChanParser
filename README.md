@@ -1,16 +1,13 @@
 # HentaiChan Parser
-**HentaiChan Parser** – это кроссплатформенный скрипт для получения данных с сайта [HentaiChan](https://hentaichan.live) в формате JSON. Он позволяет записать всю информацию о конкретной манге, а также её главах и содержании глав.
+**HentaiChan Parser** – это кроссплатформенный скрипт для получения данных с сайта [HentaiChan](https://hentaichan.live) в формате JSON. Он позволяет записать всю информацию о конкретной манге, а также её главах и содержании глав в формате [DMP-V1](Examples/DMP-V1.md).
 
 ## Порядок установки и использования
 1. Загрузить последний релиз. Распаковать.
 2. Установить Python версии не старше 3.10. Рекомендуется добавить в PATH.
-3. В среду исполнения установить следующие пакеты: [webdriver_manager](https://github.com/SergeyPirogov/webdriver_manager), [BeautifulSoup4](https://launchpad.net/beautifulsoup), [fake_useragent](https://github.com/fake-useragent/fake-useragent), [PyEnchant](https://github.com/pyenchant/pyenchant), [requests](https://github.com/psf/requests), [Selenium](https://github.com/SeleniumHQ/selenium), [dublib](https://github.com/DUB1401/dublib), [Pillow](https://github.com/python-pillow/Pillow).
+3. В среду исполнения установить следующие пакеты: [BeautifulSoup4](https://launchpad.net/beautifulsoup), [PyEnchant](https://github.com/pyenchant/pyenchant), [dublib](https://github.com/DUB1401/dublib), [Pillow](https://github.com/python-pillow/Pillow).
 ```
-pip install webdriver_manager
 pip install BeautifulSoup4
-pip install fake-useragent
 pip install PyEnchant
-pip install requests
 pip install dublib
 pip install Pillow
 ```
@@ -27,21 +24,6 @@ pip install -r requirements.txt
 collect
 ```
 Помещает список алиасов тайтлов, обновлённых на сайте за указанный в настройках период поиска обновлений, в файл _Collection.txt_.
-___
-```
-convert [TARGET*] [SOURCE_FORMAT*] [OUTPUT_FORMAT*]
-```
-Преобразует внутреннюю структуру JSON файлов определений тайтлов согласно одному из поддерживаемых форматов: [DMP-V1](Examples/DMP-V1.md), [HCMP-V1](Examples/HCMP-V1.md).
-
-**Описание позиций:**
-* **TARGET** – цель для конвертирования. Обязательная позиция.
-	* Аргумент – имя файла. Можно указывать как с расширением, так и без него.
-* **SOURCE_FORMAT** – исходный формат. Обязательная позиция.
-	* Аргумент – название формата из [списка](Examples/) в любом регистре.
-* **OUTPUT_FORMAT** – целевой формат. Обязательная позиция.
-	* Аргумент – название формата из [списка](Examples/) в любом регистре.
-	* Флаги:
-		* _**-auto**_ – берёт название формата из ключа `format` внутри описательного файла JSON.
 ___
 ```
 getcov [MANGA_SLUG*] [FLAGS]
@@ -90,22 +72,14 @@ update [FLAGS] [KEYS]
 
 # Settings.json
 ```JSON
-"format": "dmp-v1"
+"sizing-covers": true
 ```
-Задаёт внутреннюю структуру описательных файлов тайтлов. Поддерживаются следующие форматы: [DMP-V1](Examples/DMP-V1.md), [HCMP-V1](Examples/HCMP-V1.md).
+Указывает, нужно ли определять и записывать в JSON разрешение обложки.
 ___
 ```JSON
 "use-webp": false
 ```
 Если включить, расширения изображений в ссылках на слайды будут заменены на _*.webp_.
-___
-```JSON
-"sizing-images": false
-```
-Указывает, нужно ли определять и записывать в JSON разрешение обложки и слайдов.
-
-> [!WARNING]  
-> На данный момент опция недоступна.
 ___
 ```JSON
 "use-id-instead-slug": false
@@ -140,4 +114,4 @@ ___
 ```
 В данном разделе можно указать список тегов, которые будут помечены как жанры, а также, при необходимости, задать для них новые названия. Переопределённые теги удаляются из оригинального списка.
 
-_Copyright © DUB1401. 2022-2023._
+_Copyright © DUB1401. 2022-2024._

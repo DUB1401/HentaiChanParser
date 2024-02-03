@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 
 import datetime
 
+# Менеджер получения обновлений.
 class Updater:
 
 	# Возвращает количество дней, прошедших с момента публикации.
@@ -50,7 +51,7 @@ class Updater:
 
 		return Date
 
-	# Конструктор: задаёт глобальные настройки и инициализирует объект.
+	# Конструктор.
 	def __init__(self, Settings: dict, Navigator: WebRequestor):
 
 		#---> Генерация свойств.

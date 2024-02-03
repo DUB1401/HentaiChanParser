@@ -1,5 +1,30 @@
+from PIL import Image
+
 import random
 import time
+
+# Возвращает разрешение изображения.
+def GetImageResolution(Path: str) -> dict:
+	# Разрешение.
+	Resolution = {
+		"width": None,
+		"height": None
+	}
+	
+	try:
+		
+		# Чтение изображения.
+		with Image.open(Path) as ImageReader:
+			
+			# Если формат изображения *.JPEG.
+			if ImageReader.format == "JPEG":
+				# Запись разрешения.
+				Resolution["width"] = ImageReader.size[0]
+				Resolution["height"] = ImageReader.size[1]
+				
+	except: pass
+	
+	return Resolution
 
 # Усекает число до определённого количества знаков после запятой.
 def ToFixedFloat(FloatNumber: float, Digits: int = 0) -> float:
